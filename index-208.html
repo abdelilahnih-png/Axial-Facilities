@@ -1,0 +1,2015 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Axial Facilities — Système de Gestion des Agents</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root { --navy:#0D1B2A; --blue:#1B4F8A; --blue2:#2E75B6; --cyan:#00B4D8; --green:#27AE60; --red:#E74C3C; --orange:#F39C12; --grey:#F4F7FB; --border:#DDE3ED; --text:#1A2B4A; --sub:#6B7A99; --radius:14px; --shadow:0 2px 14px rgba(13,27,42,.12); }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{font-size:16px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#EDF1F7;color:var(--text);min-height:100vh;padding-bottom:90px}
+button{cursor:pointer;font-family:inherit}
+#splash{position:fixed;inset:0;background:linear-gradient(160deg,var(--navy),var(--blue));display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s}
+#splash .logo{font-size:64px;margin-bottom:16px}
+#splash h1{color:white;font-size:22px;font-weight:800}
+#splash p{color:rgba(255,255,255,.6);font-size:13px;margin-top:6px}
+#splash .bar{width:180px;height:4px;background:rgba(255,255,255,.15);border-radius:10px;margin-top:40px;overflow:hidden}
+#splash .bar-fill{height:100%;background:var(--cyan);border-radius:10px;animation:barfill 1.8s ease forwards}
+@keyframes barfill{from{width:0}to{width:100%}}
+.topbar{background:linear-gradient(135deg,var(--navy),var(--blue));color:white;padding:14px 16px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:10px;box-shadow:0 3px 20px rgba(13,27,42,.4)}
+.topbar-logo{font-size:26px}
+.topbar-title{font-size:15px;font-weight:800}
+.topbar-sub{font-size:11px;opacity:.6;margin-top:1px}
+.topbar-right{margin-left:auto;text-align:right}
+.topbar-date{font-size:11px;opacity:.7}
+.topbar-time{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+#syncStatus{position:absolute;top:0;right:0;font-size:10px;font-weight:700;padding:2px 8px;border-radius:0 0 8px 0;display:none}
+#syncStatus.syncing{background:#F39C12;color:white;display:block}
+#syncStatus.ok{background:#27AE60;color:white;display:block}
+#syncStatus.error{background:#E74C3C;color:white;display:block}
+.bottom-nav{position:fixed;bottom:0;right:0;left:0;background:white;border-top:1px solid var(--border);display:flex;z-index:200;box-shadow:0 -4px 20px rgba(13,27,42,.1)}
+.nav-btn{flex:1;padding:10px 4px 12px;font-size:10px;font-weight:700;color:var(--sub);background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:4px}
+.nav-btn .ni{font-size:22px;line-height:1}
+.nav-btn.active{color:var(--blue2)}
+.page{display:none;padding:14px;animation:fadein .2s ease}
+.page.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.card{background:white;border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--blue2);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.card-title span{font-size:16px}
+.field{margin-bottom:12px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select,.field textarea{width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-size:15px;color:var(--text);background:var(--grey);appearance:none;-webkit-appearance:none;font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--blue2);background:white}
+.field textarea{resize:none;min-height:70px}
+.sel-wrap{position:relative}
+.sel-wrap::after{content:"▾";position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--blue2);font-size:14px;pointer-events:none}
+.field-row{display:flex;gap:10px}
+.field-row .field{flex:1}
+.btn{width:100%;padding:15px;font-size:15px;font-weight:700;border:none;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s,transform .1s;font-family:inherit}
+.btn:active{opacity:.88;transform:scale(.98)}
+.btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue2));color:white;box-shadow:0 4px 14px rgba(27,79,138,.35)}
+.btn-success{background:linear-gradient(135deg,#1e7e34,var(--green));color:white;box-shadow:0 4px 14px rgba(39,174,96,.35)}
+.btn-outline{background:white;color:var(--blue);border:2px solid var(--border)}
+.btn+.btn,.btn+.btn-outline{margin-top:10px}
+.alert{border-radius:10px;padding:12px 14px;font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px}
+.alert-red{background:#FDE8E8;color:#C0392B;border-left:4px solid var(--red)}
+.alert-orange{background:#FEF3E2;color:#9C5A00;border-left:4px solid var(--orange)}
+.alert-green{background:#E9F7EF;color:#1A6B3C;border-left:4px solid var(--green)}
+.alert-blue{background:#EBF4FE;color:#1B4F8A;border-left:4px solid var(--blue2)}
+.badge{display:inline-flex;align-items:center;justify-content:center;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.badge-red{background:#FDE8E8;color:var(--red)}
+.badge-orange{background:#FEF3E2;color:#9C5A00}
+.badge-green{background:#E9F7EF;color:var(--green)}
+.badge-blue{background:#EBF4FE;color:var(--blue2)}
+.dash-header{background:linear-gradient(135deg,var(--navy),var(--blue2));border-radius:var(--radius);padding:18px;margin-bottom:14px;color:white;position:relative;overflow:hidden}
+.dash-header::before{content:'🚻';position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:64px;opacity:.1}
+.dash-header h2{font-size:17px;font-weight:800}
+.dash-header p{font-size:12px;opacity:.7;margin-top:4px}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.kpi-card{background:white;border-radius:12px;padding:14px;box-shadow:var(--shadow);text-align:center}
+.kpi-val{font-size:28px;font-weight:900;color:var(--blue)}
+.kpi-val.red{color:var(--red)}.kpi-val.orange{color:var(--orange)}.kpi-val.green{color:var(--green)}
+.kpi-lbl{font-size:11px;color:var(--sub);font-weight:600;margin-top:3px}
+.quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.qa-btn{background:white;border:2px solid var(--border);border-radius:12px;padding:16px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--text)}
+.qa-btn .qi{font-size:28px}
+.worker-box{background:#EBF4FE;border-radius:10px;padding:14px;border-left:4px solid var(--blue2);margin-top:8px;display:none}
+.worker-box.show{display:block}
+.w-name{font-size:18px;font-weight:800;color:var(--navy)}
+.w-tel{font-size:13px;color:var(--sub);margin-top:3px}
+.w-tag{display:inline-block;margin-top:6px;margin-right:5px;border-radius:20px;font-size:12px;font-weight:600;padding:3px 10px}
+.w-rest{background:#FEF3E2;color:#9C5A00}.w-repl{background:#E9F7EF;color:#1A6B3C}
+.absence-item{background:white;border-radius:10px;padding:14px;margin-bottom:8px;box-shadow:var(--shadow);border-left:4px solid var(--border)}
+.absence-item.absent{border-left-color:var(--red)}
+.absence-item.late{border-left-color:var(--orange)}
+.absence-item.right{border-left-color:var(--cyan)}
+.absence-item.present-ok{border-left-color:var(--green)}
+.ai-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ai-name{font-size:15px;font-weight:700}
+.ai-bloc{font-size:11px;color:var(--sub);margin-top:2px}
+.ai-note{font-size:12px;color:var(--sub);margin-top:6px;font-style:italic}
+.pt-worker{background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.pt-worker-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.pt-worker-name{font-weight:800;font-size:15px}
+.pt-worker-info{font-size:11px;color:var(--sub);margin-top:2px}
+.pt-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.pt-btn{padding:10px 4px;border-radius:10px;font-weight:700;font-size:12px;border:2px solid var(--border);background:var(--grey);color:var(--sub)}
+.pt-btn.active-present{border-color:var(--green);background:#E9F7EF;color:var(--green)}
+.pt-btn.active-absent{border-color:var(--red);background:#FDE8E8;color:var(--red)}
+.pt-btn.active-late{border-color:var(--orange);background:#FEF3E2;color:var(--orange)}
+.salary-card{background:white;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.salary-worker{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.salary-amount{font-size:22px;font-weight:900;color:var(--green);text-align:right}
+.salary-days{font-size:11px;color:var(--sub);text-align:right}
+.salary-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+.salary-cell{border-radius:8px;padding:8px;text-align:center}
+.salary-val{font-size:18px;font-weight:900}
+.salary-lbl{font-size:10px;color:var(--sub);margin-top:2px}
+.section-tabs{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
+.section-tabs::-webkit-scrollbar{display:none}
+.stab{flex-shrink:0;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:700;border:2px solid var(--border);background:white;color:var(--sub)}
+.stab.active{background:var(--blue2);color:white;border-color:var(--blue2)}
+.dismiss-card{background:white;border-radius:10px;padding:14px;margin-bottom:8px;box-shadow:var(--shadow);border:2px solid var(--red)}
+.dismiss-name{font-size:15px;font-weight:800;color:var(--red)}
+.repl-result{background:#E9F7EF;border-radius:10px;padding:16px;border-left:4px solid var(--green);display:none;margin-top:10px}
+.repl-result.show{display:block}
+.no-repl{background:#FDE8E8;border-radius:10px;padding:16px;border-left:4px solid var(--red);display:none;margin-top:10px}
+.no-repl.show{display:block}
+.print-report{background:white;border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+.print-header{text-align:center;border-bottom:3px solid var(--blue);padding-bottom:16px;margin-bottom:16px}
+.print-sig{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;padding-top:16px;border-top:2px solid var(--border)}
+.sig-box{text-align:center}
+.sig-line{border-bottom:2px solid var(--blue);margin-top:30px;padding-bottom:4px;font-size:12px;color:var(--sub)}
+.empty{text-align:center;padding:40px 20px;color:var(--sub)}
+.empty .big{font-size:48px;margin-bottom:10px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:white;border-radius:20px;padding:24px;width:100%;max-width:360px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.modal h3{font-size:18px;font-weight:800;margin-bottom:8px}
+.modal p{font-size:14px;color:var(--sub);margin-bottom:18px;line-height:1.6;white-space:pre-line}
+.modal-btns{display:flex;gap:10px}
+.modal-btns .btn{flex:1;padding:13px;font-size:14px;margin:0}
+.setup-page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;background:linear-gradient(160deg,var(--navy),var(--blue))}
+.setup-card{background:white;border-radius:20px;padding:24px;width:100%;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.setup-title{font-size:20px;font-weight:900;color:var(--navy);margin-bottom:6px}
+.setup-sub{font-size:13px;color:var(--sub);margin-bottom:20px;line-height:1.6}
+.step-num{background:var(--blue2);color:white;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;margin-right:8px;flex-shrink:0}
+.step-row{display:flex;align-items:flex-start;margin-bottom:16px;font-size:13px;color:var(--text);line-height:1.6}
+.step-code{background:#F4F7FB;border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:monospace;font-size:12px;color:var(--blue);word-break:break-all;margin-top:6px}
+@media print { .topbar,.bottom-nav,.btn,.section-tabs,#syncStatus,.page:not(.active){display:none!important} .page.active{padding:0!important} body{background:white;padding:0} .card{box-shadow:none;border:1px solid #ddd} }
+
+/* ===== NEW: Admin (Blocs management) ===== */
+.admin-card{background:white;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow);display:flex;gap:12px;align-items:flex-start}
+.admin-photo{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--grey);flex-shrink:0;border:2px solid var(--border)}
+.admin-photo-empty{width:56px;height:56px;border-radius:12px;background:var(--grey);flex-shrink:0;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--sub)}
+.admin-info{flex:1;min-width:0}
+.admin-name{font-weight:800;font-size:15px}
+.admin-sub{font-size:11px;color:var(--sub);margin-top:2px;line-height:1.5}
+.admin-actions{display:flex;flex-direction:column;gap:6px}
+.admin-actions button{border:none;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:700}
+.btn-edit{background:#EBF4FE;color:var(--blue2)}
+.btn-del{background:#FDE8E8;color:var(--red)}
+.fab-add{position:sticky;bottom:80px;width:100%;background:linear-gradient(135deg,var(--blue),var(--blue2));color:white;border:none;border-radius:14px;padding:14px;font-weight:800;font-size:14px;box-shadow:0 4px 14px rgba(27,79,138,.35);margin-bottom:10px}
+.photo-preview{width:80px;height:80px;border-radius:12px;object-fit:cover;border:2px solid var(--border);margin-top:8px;display:none}
+.photo-preview.show{display:block}
+
+/* ===== NEW: WhatsApp bulk send ===== */
+.wa-worker-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.wa-worker-row input[type=checkbox]{width:20px;height:20px;flex-shrink:0}
+.wa-worker-name{font-weight:700;font-size:14px}
+.wa-worker-tel{font-size:11px;color:var(--sub)}
+.wa-worker-row.disabled{opacity:.4}
+.wa-progress-box{background:#EBF4FE;border-radius:12px;padding:14px;margin-top:10px;display:none}
+.wa-progress-box.show{display:block}
+.wa-progress-bar{height:8px;background:var(--border);border-radius:6px;overflow:hidden;margin-top:8px}
+.wa-progress-fill{height:100%;background:var(--green);width:0%;transition:width .3s}
+.select-row{display:flex;gap:8px;margin-bottom:6px}
+.select-row button{flex:1;padding:8px;border-radius:8px;border:2px solid var(--border);background:white;font-size:12px;font-weight:700;color:var(--blue2)}
+/* ===== NEW: Planning matrix ===== */
+.plan-table{width:100%;border-collapse:collapse;font-size:11px;background:white;border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.plan-table th,.plan-table td{border:1px solid var(--border);padding:6px 4px;text-align:center;vertical-align:middle}
+.plan-table th{background:var(--blue2);color:white;font-weight:700;font-size:10px}
+.plan-table td.grp-cell{background:var(--grey);font-weight:800;color:var(--blue);font-size:11px}
+.plan-cell-name{font-weight:700;font-size:11px}
+.plan-cell-sub{background:#FEF3E2}
+.plan-cell-empty{color:var(--sub);font-size:16px}
+.plan-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* ===== NEW: Weekly rest-day view ===== */
+.weekly-day-card{background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.weekly-day-title{font-weight:800;font-size:14px;color:var(--blue);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.weekly-worker-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.weekly-worker-row:last-child{border-bottom:none}
+
+/* ===== NEW: Notes ===== */
+.note-card{background:white;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);border-left:4px solid var(--blue2)}
+.note-card.due-soon{border-left-color:var(--orange)}
+.note-card.overdue{border-left-color:var(--red)}
+.note-date{font-size:11px;color:var(--sub);font-weight:700}
+.note-worker{font-size:12px;color:var(--blue2);font-weight:700;margin-top:2px}
+.note-text{font-size:14px;margin-top:6px;line-height:1.5}
+.note-del{background:none;border:none;color:var(--red);font-size:12px;padding:4px}
+.note-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+
+/* ===== NOUVEAU : Congé / Maladie ===== */
+.conge-card{background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow);border-left:4px solid var(--border)}
+.conge-card.active{border-left-color:var(--orange)}
+.conge-card.planned{border-left-color:var(--blue2)}
+.conge-card.completed{border-left-color:var(--green);opacity:.7}
+.conge-name{font-weight:800;font-size:15px}
+.conge-dates{font-size:12px;color:var(--sub);margin-top:2px}
+.conge-repl{font-size:12px;margin-top:6px;background:#E9F7EF;color:#1A6B3C;border-radius:8px;padding:6px 10px;display:inline-block}
+.prio-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border)}
+.prio-rank{width:30px;height:30px;border-radius:50%;background:var(--blue2);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.prio-rank.top{background:var(--green)}
+.prio-info{flex:1}
+.prio-name{font-weight:700;font-size:14px}
+.prio-sub{font-size:11px;color:var(--sub)}
+/* ===== NEW: Excel Import/Export ===== */
+.imp-row{background:white;border-radius:10px;padding:12px;margin-bottom:8px;box-shadow:var(--shadow);border-left:4px solid var(--border)}
+.imp-row.new{border-left-color:var(--green)}
+.imp-row.update{border-left-color:var(--orange)}
+.imp-row.same{opacity:.5}
+.imp-tag{font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px}
+.imp-tag.new{background:#E9F7EF;color:var(--green)}
+.imp-tag.update{background:#FEF3E2;color:#9C5A00}
+.imp-tag.same{background:var(--grey);color:var(--sub)}
+.imp-diff{font-size:11px;margin-top:6px;line-height:1.6}
+.imp-diff .old{color:var(--red);text-decoration:line-through}
+.imp-diff .new-val{color:var(--green);font-weight:700}
+.imp-check{display:flex;align-items:center;gap:8px;justify-content:space-between}
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="logo">🚻</div>
+  <h1>Axial Facilities</h1>
+  <p>Système de Gestion des Agents</p>
+  <div class="bar"><div class="bar-fill"></div></div>
+</div>
+
+<!-- ============ SETUP PAGE (Supabase) ============ -->
+<div class="setup-page" id="setupPage" style="display:none">
+  <div class="setup-card">
+    <div style="font-size:40px;text-align:center;margin-bottom:8px">⚙️</div>
+    <div class="setup-title">Configuration du système — Supabase</div>
+    <div class="setup-sub">Connectez l’application à la base de données Supabase (une seule fois) :</div>
+
+    <div class="step-row"><span class="step-num">1</span><div>Ouvrez <b>supabase.com</b> et créez un nouveau projet. Dans les paramètres ← API, copiez l'<b>URL du projet</b>.</div></div>
+    <div class="step-row"><span class="step-num">2</span><div>Sur la même page, copiez la <b>clé publique anon</b>.</div></div>
+    <div class="step-row"><span class="step-num">3</span><div>Exécutez le fichier <b>supabase_schema.sql</b> fourni dans l’éditeur SQL de votre projet Supabase (une seule fois) pour créer les tables.</div></div>
+
+    <div class="field">
+      <label>🔗 Project URL</label>
+      <input type="text" id="supaUrlInput" placeholder="https://xxxxx.supabase.co">
+    </div>
+    <div class="field">
+      <label>🔑 Anon Public Key</label>
+      <input type="text" id="supaKeyInput" placeholder="eyJhbGciOi...">
+    </div>
+    <div id="setupError"></div>
+    <button class="btn btn-primary" onclick="saveSupabaseConfig()">💾 Enregistrer et démarrer</button>
+  </div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="mainApp" style="display:none">
+
+  <div class="topbar">
+    <div id="syncStatus"></div>
+    <div class="topbar-logo">🏢</div>
+    <div>
+      <div class="topbar-title">Axial Facilities</div>
+      <div class="topbar-sub">Système de Gestion des Agents</div>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-date" id="topDate"></div>
+      <div class="topbar-time" id="topTime"></div>
+    </div>
+    <button onclick="confirmResetConfig()" style="background:none;border:none;color:white;opacity:.7;font-size:18px;padding:4px 6px">⚙️</button>
+  </div>
+
+  <!-- ===================== HOME ===================== -->
+  <div class="page active" id="page-home">
+    <div class="dash-header">
+      <h2>Bienvenue 👋 Bonjour</h2>
+      <p>Tableau de bord — Tableau de bord</p>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-val" id="kpiTotal">0</div><div class="kpi-lbl">Agents enregistrés</div></div>
+      <div class="kpi-card"><div class="kpi-val red" id="kpiAbs">0</div><div class="kpi-lbl">Absences aujourd’hui</div></div>
+      <div class="kpi-card"><div class="kpi-val orange" id="kpiLate">0</div><div class="kpi-lbl">Retards aujourd’hui</div></div>
+      <div class="kpi-card"><div class="kpi-val green" id="kpiBlocs">0</div><div class="kpi-lbl">Total des blocs</div></div>
+    </div>
+
+    <div id="homeAlerts"></div>
+
+    <div class="quick-actions">
+      <button class="qa-btn" onclick="navTo('page-pointage')"><span class="qi">📅</span>Pointage quotidien</button>
+      <button class="qa-btn" onclick="navTo('page-absence')"><span class="qi">📋</span>Absences / Retards</button>
+      <button class="qa-btn" onclick="navTo('page-replacement')"><span class="qi">🔄</span>Trouver un remplaçant</button>
+      <button class="qa-btn" onclick="navTo('page-salary')"><span class="qi">💰</span>Fiche de paie</button>
+      <button class="qa-btn" onclick="navTo('page-admin')"><span class="qi">🗂️</span>Gestion des agents et des blocs</button>
+      <button class="qa-btn" onclick="navTo('page-whatsapp')"><span class="qi">📲</span>Message groupé WhatsApp</button>
+      <button class="qa-btn" onclick="navTo('page-planning')"><span class="qi">📆</span>Planning hebdomadaire</button>
+      <button class="qa-btn" onclick="navTo('page-weekly')"><span class="qi">🗓️</span>Repos hebdomadaire</button>
+      <button class="qa-btn" onclick="navTo('page-conges')"><span class="qi">🏖️</span>Congé (congé annuel)</button>
+      <button class="qa-btn" onclick="navTo('page-maladie')"><span class="qi">🤒</span>Maladie</button>
+      <button class="qa-btn" onclick="navTo('page-notes')"><span class="qi">📝</span>Notes</button>
+      <button class="qa-btn" onclick="navTo('page-admin')"><span class="qi">📍</span>Blocs</button>
+      <button class="qa-btn" onclick="navTo('page-excel')"><span class="qi">📊</span>Export / Import Excel</button>
+    </div>
+
+    <div id="todayPreview"></div>
+  </div>
+
+  <!-- ===================== POINTAGE ===================== -->
+  <div class="page" id="page-pointage">
+    <div class="section-tabs">
+      <button class="stab active" onclick="showPtTab('form')">📅 Pointage</button>
+      <button class="stab" onclick="showPtTab('history')">📜 Historique</button>
+    </div>
+
+    <div id="ptTab-form">
+      <div class="alert alert-blue">ℹ️ Tous les agents sont marqués « Présent ✅ » par défaut. Modifiez uniquement le statut d’un agent en « Absent » ou « Retard » si nécessaire, puis enregistrez.</div>
+      <div class="card">
+        <div class="card-title"><span>📅</span>Date du pointage</div>
+        <div class="field"><input type="date" id="ptDate"></div>
+      </div>
+      <button class="btn btn-success" id="ptSaveBtn" onclick="saveAllPointage()">💾 Enregistrer le pointage du jour dans Supabase</button>
+      <div id="ptWorkersList" style="margin-top:14px"></div>
+    </div>
+
+    <div id="ptTab-history" style="display:none">
+      <div class="card">
+        <div class="field">
+          <label>📍 Bloc</label>
+          <div class="sel-wrap"><select id="ptHistBloc" onchange="loadPointageHistory()"><option value="">Tous les agents</option></select></div>
+        </div>
+      </div>
+      <div id="ptHistoryList"></div>
+    </div>
+  </div>
+
+  <!-- ===================== ABSENCE ===================== -->
+  <div class="page" id="page-absence">
+    <div class="section-tabs">
+      <button class="stab active" onclick="showAbsTab('form')">📝 Enregistrement</button>
+      <button class="stab" onclick="showAbsTab('log')">📜 Historique</button>
+      <button class="stab" onclick="showAbsTab('stats')">📊 Statistiques</button>
+      <button class="stab" onclick="showAbsTab('dismiss')">⛔ Licenciement</button>
+    </div>
+
+    <div id="absTab-form">
+      <div class="card">
+        <div class="card-title"><span>📝</span>Enregistrer une absence / un retard</div>
+        <div class="field"><label>📅 Date</label><input type="date" id="absDate"></div>
+        <div class="field">
+          <label>📍 Bloc</label>
+          <div class="sel-wrap"><select id="absBloc" onchange="onAbsBlocChange()"><option value="">— Choisir le bloc —</option></select></div>
+        </div>
+        <div class="worker-box" id="absWorkerBox">
+          <div class="w-name" id="absWName"></div>
+          <div class="w-tel" id="absWTel"></div>
+          <div id="absWTags"></div>
+        </div>
+        <div class="field">
+          <label>📋 Type d’événement</label>
+          <div class="sel-wrap">
+            <select id="absType" onchange="onAbsTypeChange()">
+              <option value="">— Choisir le type —</option>
+              <option value="absent_notif">Absence signalée</option>
+              <option value="absent_no">Absence non signalée ⚠️</option>
+              <option value="late">Retard au travail</option>
+              <option value="left_early">Départ anticipé ⚠️</option>
+            </select>
+          </div>
+        </div>
+        <div id="absTimeFields" style="display:none">
+          <div class="field-row">
+            <div class="field"><label>🕐 Heure de service</label><input type="time" id="absStartTime"></div>
+            <div class="field"><label>⏰ Heure d’arrivée</label><input type="time" id="absActualTime"></div>
+          </div>
+        </div>
+        <div id="absEndField" style="display:none">
+          <div class="field"><label>🚪 Heure de départ anticipé</label><input type="time" id="absEndTime"></div>
+          <div class="alert alert-orange">⚠️ Cette journée ne sera pas comptabilisée dans la paie</div>
+        </div>
+        <div class="field"><label>📝 Notes</label><textarea id="absNote"></textarea></div>
+        <div id="absAlert"></div>
+        <button class="btn btn-primary" onclick="saveAbsence()">💾 Enregistrer dans Supabase</button>
+      </div>
+    </div>
+
+    <div id="absTab-log" style="display:none">
+      <div class="card">
+        <div class="field">
+          <label>📍 Bloc</label>
+          <div class="sel-wrap"><select id="logFilterBloc" onchange="renderAbsLog()"><option value="">Tous les blocs</option></select></div>
+        </div>
+      </div>
+      <div id="absLogList"></div>
+    </div>
+
+    <div id="absTab-stats" style="display:none">
+      <div id="absStatsContent"></div>
+    </div>
+
+    <div id="absTab-dismiss" style="display:none">
+      <div class="card">
+        <div class="card-title"><span>⛔</span>Agents proposés au licenciement — action immédiate requise</div>
+      </div>
+      <div id="dismissList"></div>
+    </div>
+  </div>
+
+  <!-- ===================== REPLACEMENT ===================== -->
+  <div class="page" id="page-replacement">
+    <div class="card">
+      <div class="card-title"><span>🔄</span>Trouver un remplaçant</div>
+      <div class="alert alert-blue">ℹ️ Sélectionnez uniquement le jour (pour voir tous les agents en repos ce jour-là), ou uniquement le bloc (pour voir les détails complets de l’agent), ou les deux ensemble.</div>
+      <div class="field">
+        <label>📅 Jour (facultatif)</label>
+        <div class="sel-wrap">
+          <select id="replDay">
+            <option value="">— Tous les jours —</option>
+            <option>Dimanche</option><option>Lundi</option><option>Mardi</option>
+            <option>Mercredi</option><option>Jeudi</option><option>Vendredi</option><option>Samedi</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>📍 Bloc (facultatif)</label>
+        <div class="sel-wrap"><select id="replBloc"><option value="">— Tous les blocs —</option></select></div>
+      </div>
+      <button class="btn btn-primary" onclick="findReplacement()">🔍 Rechercher</button>
+
+      <div class="no-repl" id="noRepl">
+        <div style="font-weight:800;color:var(--red)">❌ Aucun résultat trouvé</div>
+        <div style="font-size:13px;color:var(--sub);margin-top:4px">Veuillez sélectionner au moins un jour ou un bloc</div>
+      </div>
+
+      <!-- Détails d’un agent (si un bloc est sélectionné) -->
+      <div class="repl-result" id="replResult">
+        <div style="font-weight:800;margin-bottom:6px" id="replResultTitle">👷 Détails de l’agent</div>
+        <div class="w-name" id="replWorkerName"></div>
+        <div class="w-tel" id="replWorkerInfo"></div>
+        <div id="replWorkerTags" style="margin-top:8px"></div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-weight:700;font-size:13px;margin-bottom:6px">🔄 Remplaçant(e) le jour de repos</div>
+          <div class="w-name" id="replName"></div>
+          <div class="w-tel" id="replInfo"></div>
+          <div style="margin-top:10px" id="replTelLink"></div>
+        </div>
+      </div>
+
+      <!-- Liste de tous les agents (si un jour est sélectionné sans bloc) -->
+      <div id="replDayList" style="margin-top:14px"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>👥</span>Liste des remplaçants</div>
+      <div id="replacementRoster"></div>
+    </div>
+  </div>
+
+  <!-- ===================== SALARY ===================== -->
+  <div class="page" id="page-salary">
+    <div id="salaryMainView">
+      <div class="card">
+        <div class="card-title"><span>💰</span>Bulletin de paie mensuel</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Mois</label>
+            <div class="sel-wrap">
+              <select id="salMonth">
+                <option value="1">Janvier</option><option value="2">Février</option><option value="3">Mars</option>
+                <option value="4">Avril</option><option value="5">Mai</option><option value="6">Juin</option>
+                <option value="7">Juillet</option><option value="8">Août</option><option value="9">Septembre</option>
+                <option value="10">Octobre</option><option value="11">Novembre</option><option value="12">Décembre</option>
+              </select>
+            </div>
+          </div>
+          <div class="field"><label>Année</label><input type="number" id="salYear"></div>
+        </div>
+        <div class="field"><label>Salaire journalier (DH)</label><input type="number" id="dailyWage" value="80"></div>
+        <button class="btn btn-primary" onclick="loadSalaryData()">📊 Calculer les salaires</button>
+      </div>
+      <div id="salaryList"></div>
+    </div>
+
+    <div id="salaryPrintView" style="display:none">
+      <button class="btn btn-outline" onclick="closePrint()">← Retour</button>
+      <div id="printContent"></div>
+      <button class="btn btn-primary" onclick="window.print()" style="margin-top:10px">🖨️ Imprimer</button>
+    </div>
+  </div>
+
+  <!-- ===================== NEW: ADMIN (Blocs & Workers CRUD) ===================== -->
+  <div class="page" id="page-admin">
+    <div class="card">
+      <div class="card-title"><span>🗂️</span>Gestion des agents et des blocs</div>
+      <div id="adminSeedBox"></div>
+      <div class="field">
+        <label>🔍 Rechercher</label>
+        <input type="text" id="adminSearch" placeholder="Nom de l’agent / numéro de bloc / adresse" oninput="renderAdminList()">
+      </div>
+    </div>
+    <button class="fab-add" onclick="openBlocForm(null)">➕ Ajouter un nouveau bloc / agent</button>
+    <div id="adminList"></div>
+  </div>
+
+  <!-- Bloc add/edit modal -->
+  <div class="modal-overlay" id="blocFormOverlay">
+    <div class="modal" style="max-width:400px;max-height:88vh;overflow-y:auto">
+      <h3 id="blocFormTitle">➕ Ajouter un nouveau bloc</h3>
+      <div class="field"><label>Numéro de bloc #</label><input type="text" id="bfNum"></div>
+      <div class="field"><label>Adresse / Emplacement</label><textarea id="bfAdr"></textarea></div>
+      <div class="field"><label>Nom du bloc</label><input type="text" id="bfBlocLabel"></div>
+      <div class="field"><label>Coordonnées GPS</label><input type="text" id="bfGps" placeholder="33°36'38.8&quot;N 7°29'26.8&quot;W"></div>
+      <div class="field"><label>Nom de l’agent</label><input type="text" id="bfNom"></div>
+      <div class="field"><label>Téléphone de l’agent</label><input type="text" id="bfTel" placeholder="+212 6XX-XXXXXX"></div>
+      <div class="field"><label>Jour de repos</label><input type="text" id="bfRepos" placeholder="Exemple : Lundi"></div>
+      <div class="field"><label>Remplaçant(e)</label><input type="text" id="bfRemplacant"></div>
+      <div class="field"><label>Téléphone du remplaçant(e)</label><input type="text" id="bfRemplacantTel"></div>
+      <div class="field-row">
+        <div class="field"><label>Groupe</label><input type="text" id="bfGroupNum" placeholder="1, 2, 3..."></div>
+        <div class="field">
+          <label>Remplaçant principal ?</label>
+          <div class="sel-wrap"><select id="bfIsSub"><option value="false">Non</option><option value="true">Oui</option></select></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>📷 Photo de l’agent</label>
+        <input type="file" id="bfPhotoFile" accept="image/*" onchange="previewBlocPhoto(event)">
+        <img id="bfPhotoPreview" class="photo-preview">
+      </div>
+      <div id="blocFormError"></div>
+      <div class="modal-btns" style="margin-top:14px">
+        <button class="btn btn-outline" onclick="closeBlocForm()">Annuler</button>
+        <button class="btn btn-primary" id="bfSaveBtn" onclick="saveBlocForm()">💾 Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== NEW: WHATSAPP BULK SEND ===================== -->
+  <div class="page" id="page-whatsapp">
+    <div class="card">
+      <div class="card-title"><span>📲</span>Message groupé via WhatsApp</div>
+      <div class="alert alert-blue">ℹ️ WhatsApp s’ouvrira automatiquement pour chaque agent toutes les 10 secondes — vous devez cliquer manuellement sur « Envoyer » dans chaque fenêtre, et autoriser les fenêtres pop-up dans le navigateur.</div>
+      <div class="field"><label>✍️ Texte du message</label><textarea id="waMessage" style="min-height:100px" placeholder="Écrivez votre message ici..."></textarea></div>
+      <div class="select-row">
+        <button onclick="waSelectAll(true)">✅ Tout sélectionner</button>
+        <button onclick="waSelectAll(false)">❌ Tout désélectionner</button>
+      </div>
+      <div id="waWorkersList"></div>
+      <button class="btn btn-success" id="waStartBtn" onclick="startWaBulkSend()" style="margin-top:12px">▶️ Démarrer l’envoi</button>
+      <button class="btn btn-outline" id="waStopBtn" onclick="stopWaBulkSend()" style="display:none">⏹️ Arrêter l’envoi</button>
+      <div class="wa-progress-box" id="waProgressBox">
+        <div style="font-weight:700;font-size:13px" id="waProgressText"></div>
+        <div class="wa-progress-bar"><div class="wa-progress-fill" id="waProgressFill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== NEW: PLANNING (Matrix) ===================== -->
+  <div class="page" id="page-planning">
+    <div class="card">
+      <div class="card-title"><span>📆</span>Planning hebdomadaire (par groupe)</div>
+      <div class="alert alert-blue">ℹ️ Chaque case indique qui est en repos hebdomadaire ce jour-là (et le remplaçant correspondant). Généré automatiquement à partir des données des agents.</div>
+    </div>
+    <div class="plan-scroll"><div id="planningTable"></div></div>
+  </div>
+
+  <!-- ===================== NEW: WEEKLY REST DAYS ===================== -->
+  <div class="page" id="page-weekly">
+    <div class="card">
+      <div class="card-title"><span>🗓️</span>Repos hebdomadaire</div>
+      <div class="alert alert-blue">ℹ️ Liste des agents selon leur jour de repos hebdomadaire (générée automatiquement).</div>
+    </div>
+    <div id="weeklyList"></div>
+  </div>
+
+  <!-- ===================== NOUVEAU : CONGÉ (congé annuel) ===================== -->
+  <div class="page" id="page-conges">
+    <div class="section-tabs">
+      <button class="stab active" onclick="showCongeTab('list')">📋 Liste</button>
+      <button class="stab" onclick="showCongeTab('add')">➕ Ajouter un congé</button>
+      <button class="stab" onclick="showCongeTab('priority')">🔢 Priorité</button>
+    </div>
+
+    <div id="congeTab-list">
+      <div id="congesList"></div>
+    </div>
+
+    <div id="congeTab-add" style="display:none">
+      <div class="card">
+        <div class="card-title"><span>➕</span>Ajouter un nouveau congé</div>
+        <div class="field">
+          <label>👷 Agent</label>
+          <div class="sel-wrap"><select id="cgWorker" onchange="onCongeWorkerChange('cg')"><option value="">— Choisir l’agent —</option></select></div>
+        </div>
+        <div class="field"><label>📅 Date de début</label><input type="date" id="cgStart"></div>
+        <div class="field"><label>🔢 Nombre de jours</label><input type="number" id="cgDuration" value="10"></div>
+        <div class="field"><label>🔄 Remplaçant(e)</label><input type="text" id="cgRepl"></div>
+        <div class="field"><label>📞 Téléphone du remplaçant(e)</label><input type="text" id="cgReplTel"></div>
+        <div class="field"><label>📝 Note</label><textarea id="cgNote"></textarea></div>
+        <div id="cgAlert"></div>
+        <button class="btn btn-primary" onclick="saveConge('conge')">💾 Enregistrer le congé</button>
+      </div>
+    </div>
+
+    <div id="congeTab-priority" style="display:none">
+      <div class="card">
+        <div class="card-title"><span>🔢</span>Ordre de priorité — rotation équitable</div>
+        <div class="alert alert-blue">ℹ️ L’agent n’ayant pas pris de congé depuis le plus longtemps apparaît en premier.</div>
+      </div>
+      <div id="priorityList"></div>
+    </div>
+  </div>
+
+  <!-- ===================== NEW: MALADIE (Maladie) ===================== -->
+  <div class="page" id="page-maladie">
+    <div class="section-tabs">
+      <button class="stab active" onclick="showMaladieTab('list')">📋 Liste</button>
+      <button class="stab" onclick="showMaladieTab('add')">➕ Enregistrer une maladie</button>
+    </div>
+
+    <div id="maladieTab-list">
+      <div id="maladieList"></div>
+    </div>
+
+    <div id="maladieTab-add" style="display:none">
+      <div class="card">
+        <div class="card-title"><span>🤒</span>Enregistrer un cas de maladie</div>
+        <div class="field">
+          <label>👷 Agent</label>
+          <div class="sel-wrap"><select id="mlWorker" onchange="onCongeWorkerChange('ml')"><option value="">— Choisir l’agent —</option></select></div>
+        </div>
+        <div class="field"><label>📅 Date de début</label><input type="date" id="mlStart"></div>
+        <div class="field"><label>🔢 Nombre de jours (estimé)</label><input type="number" id="mlDuration" value="3"></div>
+        <div class="field"><label>🔄 Remplaçant(e)</label><input type="text" id="mlRepl"></div>
+        <div class="field"><label>📞 Téléphone du remplaçant(e)</label><input type="text" id="mlReplTel"></div>
+        <div class="field"><label>📝 Note (type de maladie, certificat médical...)</label><textarea id="mlNote"></textarea></div>
+        <div id="mlAlert"></div>
+        <button class="btn btn-primary" onclick="saveConge('maladie')">💾 Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== NEW: NOTES ===================== -->
+  <div class="page" id="page-notes">
+    <div class="card">
+      <div class="card-title"><span>📝</span>Ajouter une note</div>
+      <div class="field">
+        <label>👷 Agent (facultatif)</label>
+        <div class="sel-wrap"><select id="ntWorker"><option value="">— Général (aucun agent spécifique) —</option></select></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>📅 Date de la note</label><input type="date" id="ntDate"></div>
+        <div class="field"><label>⏰ Date d’échéance (facultatif)</label><input type="date" id="ntEndDate"></div>
+      </div>
+      <div class="field"><label>✍️ Texte</label><textarea id="ntText" placeholder="Écrivez la note ici..."></textarea></div>
+      <button class="btn btn-primary" onclick="saveNote()">💾 Enregistrer la note</button>
+    </div>
+    <div id="notesList"></div>
+  </div>
+
+  <!-- ===================== NEW: EXCEL EXPORT / IMPORT ===================== -->
+  <div class="page" id="page-excel">
+    <div class="card">
+      <div class="card-title"><span>📤</span>Exporter vers Excel</div>
+      <div class="alert alert-blue">ℹ️ Exporte toutes les données actuelles des agents et des blocs sous forme de sauvegarde modifiable.</div>
+      <button class="btn btn-primary" onclick="exportToExcel()">📤 Exporter en Excel</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>📥</span>Importer depuis Excel</div>
+      <div class="alert alert-blue">ℹ️ Modifiez le fichier exporté dans Excel, puis téléversez-le ici. Un aperçu des modifications s’affichera avant confirmation.</div>
+      <div class="field"><input type="file" id="excelFileInput" accept=".xlsx,.xls" onchange="handleExcelImport(event)"></div>
+      <div id="excelImportError"></div>
+    </div>
+
+    <div id="excelPreviewSection" style="display:none">
+      <div class="card">
+        <div class="card-title"><span>🔍</span>Aperçu des modifications</div>
+        <div style="font-size:13px;color:var(--sub)" id="excelPreviewSummary"></div>
+        <div class="select-row" style="margin-top:10px">
+          <button onclick="excelSelectAll(true)">✅ Tout sélectionner</button>
+          <button onclick="excelSelectAll(false)">❌ Tout désélectionner</button>
+        </div>
+      </div>
+      <div id="excelPreviewList"></div>
+      <button class="btn btn-success" onclick="confirmExcelImport()">✅ Confirmer et appliquer les modifications sélectionnées</button>
+      <button class="btn btn-outline" onclick="cancelExcelImport()">Annuler</button>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="nav-btn active" id="nb-home" onclick="navTo('page-home')"><span class="ni">🏠</span>Accueil</button>
+    <button class="nav-btn" id="nb-pointage" onclick="navTo('page-pointage')"><span class="ni">📅</span>Pointage</button>
+    <button class="nav-btn" id="nb-absence" onclick="navTo('page-absence')"><span class="ni">📋</span>Présence</button>
+    <button class="nav-btn" id="nb-replacement" onclick="navTo('page-replacement')"><span class="ni">🔄</span>Remplaçant</button>
+    <button class="nav-btn" id="nb-salary" onclick="navTo('page-salary')"><span class="ni">💰</span>Paie</button>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle"></h3>
+    <p id="modalBody"></p>
+    <div class="modal-btns"><button class="btn btn-primary" onclick="closeModal()">OK</button></div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════ CONFIGURATION ════════════════════════════════════════════════ */
+const SUPA_URL_KEY = 'axial_supabase_url';
+const LAST_PAGE_KEY = 'axial_last_page';
+const SUPA_ANON_KEY = 'axial_supabase_anon_key';
+let SUPA_URL = localStorage.getItem(SUPA_URL_KEY) || '';
+let SUPA_ANON = localStorage.getItem(SUPA_ANON_KEY) || '';
+let sb = null;
+const DAILY_WAGE_DEFAULT = 80;
+const MAX_ABSENT_NO = 3;
+const MAX_LEFT_EARLY = 3;
+const MONTHS_AR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+/* In-memory state */
+let BLOCS = [];
+let WORKERS = [];
+let cachedRecords = [];
+let ptStatus = {};
+let waStopFlag = false;
+
+const TYPE_LABELS = {present:"Présent ✅", absent_notif:"Absence signalée", absent_no:"Absence non signalée", late:"Retard", left_early:"Départ anticipé"};
+const TYPE_COLORS = {present:"#27AE60", absent_notif:"#2E75B6", absent_no:"#E74C3C", late:"#F39C12", left_early:"#F39C12"};
+
+/* ════════════════════════════════════════════════ INIT ════════════════════════════════════════════════ */
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('splash').style.opacity = '0';
+    setTimeout(() => document.getElementById('splash').style.display = 'none', 400);
+    if(SUPA_URL && SUPA_ANON) { initSupabaseClient(); showMainApp(); }
+    else { document.getElementById('setupPage').style.display = 'flex'; }
+  }, 1800);
+  initClock();
+  const today = new Date().toISOString().split('T')[0];
+  ['absDate','ptDate'].forEach(id => { const el = document.getElementById(id); if(el) el.value = today; });
+  const now = new Date();
+  const salMonth = document.getElementById('salMonth');
+  const salYear = document.getElementById('salYear');
+  if(salMonth) salMonth.value = now.getMonth() + 1;
+  if(salYear) salYear.value = now.getFullYear();
+});
+
+function initSupabaseClient() {
+  sb = window.supabase.createClient(SUPA_URL, SUPA_ANON);
+}
+
+function saveSupabaseConfig() {
+  let url = document.getElementById('supaUrlInput').value.trim();
+  const key = document.getElementById('supaKeyInput').value.trim();
+  url = url.replace(/\/rest\/v1.*$/,'').replace(/\/+$/,''); // Supprime tout chemin superflu ou / final
+  if(!url.startsWith('https://') || !url.includes('.supabase.co')) {
+    document.getElementById('setupError').innerHTML = '<div class="alert alert-red">⚠️ L’URL Supabase est incorrecte. Elle doit être au format https://xxxx.supabase.co</div>';
+    return;
+  }
+  if(!key || key.length < 20) {
+    document.getElementById('setupError').innerHTML = '<div class="alert alert-red">⚠️ Veuillez saisir la clé anon correcte</div>';
+    return;
+  }
+  SUPA_URL = url; SUPA_ANON = key;
+  localStorage.setItem(SUPA_URL_KEY, url);
+  localStorage.setItem(SUPA_ANON_KEY, key);
+  initSupabaseClient();
+  document.getElementById('setupPage').style.display = 'none';
+  showMainApp();
+}
+
+async function showMainApp() {
+  document.getElementById('mainApp').style.display = 'block';
+  await loadBlocsFromDB();
+  populateSelects();
+  renderReplacementRoster();
+  await loadTodayRecords();
+  // Revenir à la dernière page visitée (si elle existe encore)
+  const lastPage = localStorage.getItem(LAST_PAGE_KEY);
+  if(lastPage && document.getElementById(lastPage)) {
+    navTo(lastPage);
+  }
+}
+
+function initClock() {
+  const days = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  function tick() {
+    const now = new Date();
+    document.getElementById('topTime').textContent = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+    document.getElementById('topDate').textContent = days[now.getDay()]+' '+now.getDate()+' '+MONTHS_AR[now.getMonth()]+' '+now.getFullYear();
+  }
+  tick(); setInterval(tick,1000);
+}
+
+function populateSelects() {
+  const ids = ['absBloc','replBloc','logFilterBloc','ptHistBloc'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const keepFirst = el.firstElementChild;
+    el.innerHTML = '';
+    if(keepFirst) el.appendChild(keepFirst);
+  });
+  BLOCS.forEach(b => {
+    const label = `Bloc ${b.num} — ${(b.adr||'').substring(0,45)}${(b.adr||'').length>45?'…':''}`;
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if(!el) return;
+      const o = document.createElement('option');
+      o.value = b.num; o.textContent = label;
+      el.appendChild(o);
+    });
+  });
+}
+
+/* ════════════════════════════════════════════════ SUPABASE DATA HELPERS ════════════════════════════════════════════════ */
+function toDbBloc(b) {
+  return { num:b.num, adr:b.adr||'', bloc_label:b.bloc_label||'', gps:b.gps||'', nom:b.nom||'', tel:b.tel||'', repos:b.repos||'', remplacant:b.remplacant||'', remplacant_tel:b.remplacant_tel||'', photo_url:b.photo_url||null, group_num:b.group_num||'', is_substitute:!!b.is_substitute };
+}
+function toDbRecord(r) {
+  return { date:r.date, bloc_num:r.blocNum, worker_name:r.workerName||'', type:r.type, note:r.note||null, start_time:r.startTime||null, actual_time:r.actualTime||null, end_time:r.endTime||null, saved_at:r.savedAt||new Date().toISOString() };
+}
+function fromDbRecord(row) {
+  return { date:row.date, blocNum:row.bloc_num, workerName:row.worker_name, type:row.type, note:row.note, startTime:row.start_time, actualTime:row.actual_time, endTime:row.end_time, savedAt:row.saved_at };
+}
+
+async function loadBlocsFromDB() {
+  if(!sb) return;
+  setSyncStatus('syncing','⏳ Synchronisation...');
+  const { data, error } = await sb.from('blocs').select('*');
+  if(error) { setSyncStatus('error','❌ Erreur de connexion'); console.error(error); return; }
+  setSyncStatus('ok','✅ Terminé');
+  BLOCS = (data||[]).sort((a,b) => {
+    const na = parseInt(a.num), nb = parseInt(b.num);
+    if(!isNaN(na) && !isNaN(nb) && na!==nb) return na-nb;
+    return String(a.num).localeCompare(String(b.num));
+  });
+  WORKERS = BLOCS.filter(b => b.nom);
+  document.getElementById('adminSeedBox') && renderAdminSeedBox();
+}
+
+function renderAdminSeedBox() {
+  const box = document.getElementById('adminSeedBox');
+  if(!box) return;
+  if(BLOCS.length === 0) {
+    box.innerHTML = `<div class="alert alert-blue">📥 Base de données vide. Cliquez pour importer les données d’origine des blocs (${SEED_BLOCS.length} blocs) depuis le fichier.</div>
+      <button class="btn btn-primary" onclick="seedInitialData()">📥 Importer les données initiales</button>`;
+  } else {
+    box.innerHTML = '';
+  }
+}
+
+async function seedInitialData() {
+  if(!sb) return;
+  setSyncStatus('syncing','⏳ Importation...');
+  const { error } = await sb.from('blocs').upsert(SEED_BLOCS, { onConflict: 'num' });
+  if(error) { showModal('❌ Erreur', 'Échec de l’importation des données: ' + error.message); setSyncStatus('error','❌'); return; }
+  setSyncStatus('ok','✅ Terminé');
+  await loadBlocsFromDB();
+  populateSelects();
+  renderReplacementRoster();
+  updateDashboard();
+  renderAdminList();
+  showModal('✅ Importation réussie', `Importation de ${SEED_BLOCS.length} blocs réussie vers Supabase`);
+}
+
+function setSyncStatus(state, msg) {
+  const el = document.getElementById('syncStatus');
+  if(!el) return;
+  el.className = state; el.textContent = msg;
+  if(state === 'ok') setTimeout(() => el.className='',3000);
+}
+
+async function loadTodayRecords() {
+  const today = new Date().toISOString().split('T')[0];
+  if(!sb) return;
+  const { data, error } = await sb.from('records').select('*').eq('date', today);
+  if(!error && data) cachedRecords = data.map(fromDbRecord);
+  updateDashboard();
+}
+
+async function loadAllRecords() {
+  if(!sb) return cachedRecords;
+  const { data, error } = await sb.from('records').select('*').order('date',{ascending:false});
+  if(!error && data) cachedRecords = data.map(fromDbRecord);
+  return cachedRecords;
+}
+
+/* ════════════════════════════════════════════════ NAVIGATION ════════════════════════════════════════════════ */
+function navTo(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const slug = pageId.replace('page-','');
+  const nb = document.getElementById('nb-'+slug);
+  if(nb) nb.classList.add('active');
+  localStorage.setItem(LAST_PAGE_KEY, pageId);
+  if(pageId === 'page-home') { loadTodayRecords(); }
+  if(pageId === 'page-pointage') { buildPointageUI(); }
+  if(pageId === 'page-absence') { showAbsTab('form'); }
+  if(pageId === 'page-salary') { document.getElementById('salaryPrintView').style.display='none'; document.getElementById('salaryMainView').style.display='block'; }
+  if(pageId === 'page-admin') { renderAdminSeedBox(); renderAdminList(); }
+  if(pageId === 'page-whatsapp') { renderWaWorkersList(); }
+  if(pageId === 'page-planning') { renderPlanning(); }
+  if(pageId === 'page-weekly') { renderWeekly(); }
+  if(pageId === 'page-conges') { showCongeTab('list'); populateWorkerSelect('cgWorker'); }
+  if(pageId === 'page-maladie') { showMaladieTab('list'); populateWorkerSelect('mlWorker'); }
+  if(pageId === 'page-notes') { populateWorkerSelect('ntWorker'); renderNotes(); }
+  if(pageId === 'page-excel') { cancelExcelImport(); }
+  window.scrollTo(0,0);
+}
+
+/* ════════════════════════════════════════════════ DASHBOARD ════════════════════════════════════════════════ */
+function updateDashboard() {
+  const today = new Date().toISOString().split('T')[0];
+  const todayRec = cachedRecords.filter(r => r.date === today);
+  const todayAbs = todayRec.filter(r => r.type === 'absent_no' || r.type === 'absent_notif').length;
+  const todayLate = todayRec.filter(r => r.type === 'late').length;
+  document.getElementById('kpiTotal').textContent = WORKERS.length;
+  document.getElementById('kpiAbs').textContent = todayAbs;
+  document.getElementById('kpiLate').textContent = todayLate;
+  document.getElementById('kpiBlocs').textContent = BLOCS.length;
+
+  const year = String(new Date().getFullYear());
+  const dismissable = getDismissable(year);
+  const ha = document.getElementById('homeAlerts');
+  ha.innerHTML = dismissable.length > 0 ? `<div class="alert alert-red" onclick="navTo('page-absence')" style="cursor:pointer">⛔ ${dismissable.length} agent(s) proposé(s) au licenciement — cliquez pour vérifier</div>` : '';
+  checkNoteReminders();
+
+  const prev = document.getElementById('todayPreview');
+  if(todayRec.length === 0) { prev.innerHTML = '<div class="card"><div class="empty"><div class="big">✅</div><p>Aucune absence enregistrée aujourd’hui</p></div></div>'; return; }
+  prev.innerHTML = '<div class="card"><div class="card-title"><span>📋</span>Registres du jour</div>' +
+    todayRec.map(r => `
+    <div class="absence-item ${r.type==='absent_no'?'absent':r.type==='late'?'late':r.type==='left_early'?'left':'present-ok'}">
+      <div class="ai-top">
+        <div><div class="ai-name">${r.workerName||'—'}</div><div class="ai-bloc">Bloc ${r.blocNum}</div></div>
+        <span class="badge" style="background:${TYPE_COLORS[r.type]}22;color:${TYPE_COLORS[r.type]}">${TYPE_LABELS[r.type]||r.type}</span>
+      </div>
+    </div>`).join('') + '</div>';
+}
+
+/* ════════════════════════════════════════════════ POINTAGE MODULE ════════════════════════════════════════════════ */
+function showPtTab(tab) {
+  ['form','history'].forEach(t => document.getElementById('ptTab-'+t).style.display = t===tab?'block':'none');
+  document.querySelectorAll('#page-pointage .stab').forEach((b,i) => b.classList.toggle('active',['form','history'][i]===tab));
+  if(tab==='history') loadPointageHistory();
+}
+
+function buildPointageUI() {
+  const date = document.getElementById('ptDate').value;
+  const dayRec = cachedRecords.filter(r => r.date === date);
+  const c = document.getElementById('ptWorkersList');
+  c.innerHTML = WORKERS.map(b => {
+    const rec = dayRec.find(r => r.blocNum === b.num);
+    // Présence par défaut ; si un enregistrement existe déjà on l’affiche, sinon on définit "Présent"
+    let cur = rec ? rec.type : ptStatus[b.num];
+    if(!cur) { cur = 'present'; }
+    ptStatus[b.num] = cur;
+    return `<div class="pt-worker">
+      <div class="pt-worker-head">
+        <div><div class="pt-worker-name">👷 ${b.nom}</div><div class="pt-worker-info">Bloc ${b.num} ${b.tel?'· 📞 '+b.tel:''}</div></div>
+        ${cur ? `<span class="badge" style="background:${TYPE_COLORS[cur]}22;color:${TYPE_COLORS[cur]}">${TYPE_LABELS[cur]}</span>` : ''}
+      </div>
+      <div class="pt-btns">
+        <button class="pt-btn ${cur==='present'?'active-present':''}" onclick="setPtStatus('${b.num}','present')">✅ Présent</button>
+        <button class="pt-btn ${cur==='absent_no'?'active-absent':''}" onclick="setPtStatus('${b.num}','absent_no')">❌ Absence</button>
+        <button class="pt-btn ${cur==='late'?'active-late':''}" onclick="setPtStatus('${b.num}','late')">⏰ Retard</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setPtStatus(blocNum, type) { ptStatus[blocNum] = type; buildPointageUI(); }
+
+document.addEventListener('change', e => { if(e.target.id === 'ptDate') { ptStatus = {}; buildPointageUI(); } });
+
+async function saveAllPointage() {
+  const date = document.getElementById('ptDate').value;
+  if(!date) { showModal('⚠️','Veuillez d’abord sélectionner la date'); return; }
+  const entries = Object.entries(ptStatus).filter(([,v]) => v);
+  if(entries.length === 0) { showModal('⚠️','Aucun statut sélectionné pour le moment'); return; }
+  const records = entries.map(([blocNum, type]) => {
+    const bloc = BLOCS.find(b => b.num === blocNum);
+    return { date, blocNum, workerName: bloc?bloc.nom:'', type, note:'Pointage', savedAt: new Date().toISOString() };
+  });
+  const btn = document.getElementById('ptSaveBtn');
+  btn.textContent = '⏳ Enregistrement en cours...'; btn.disabled = true;
+  const dbRows = records.map(toDbRecord);
+  const { error } = await sb.from('records').upsert(dbRows, { onConflict: 'date,bloc_num' });
+  btn.textContent = '💾 Enregistrer le pointage du jour dans Supabase'; btn.disabled = false;
+  if(!error) {
+    records.forEach(r => {
+      const idx = cachedRecords.findIndex(c => c.date===r.date && c.blocNum===r.blocNum);
+      if(idx >= 0) cachedRecords[idx] = r; else cachedRecords.unshift(r);
+    });
+    ptStatus = {};
+    buildPointageUI();
+    showModal('✅ Enregistré', `Pointage enregistré pour le ${date} (${records.length} agents) dans Supabase avec succès`);
+  } else {
+    console.error(error);
+    showModal('❌ Erreur', 'Échec de l’enregistrement dans Supabase. Vérifiez votre connexion internet ou les paramètres de la table.');
+  }
+}
+
+async function loadPointageHistory() {
+  const filterBloc = document.getElementById('ptHistBloc').value;
+  const all = await loadAllRecords();
+  let recs = all.filter(r => ['present','absent_no','late'].includes(r.type));
+  if(filterBloc) recs = recs.filter(r => r.blocNum === filterBloc);
+  const list = document.getElementById('ptHistoryList');
+  if(recs.length === 0) { list.innerHTML = '<div class="empty"><div class="big">📅</div><p>Aucun enregistrement</p></div>'; return; }
+  const byDate = {};
+  recs.forEach(r => { if(!byDate[r.date]) byDate[r.date]=[]; byDate[r.date].push(r); });
+  list.innerHTML = Object.keys(byDate).sort().reverse().map(d => `
+    <div class="card" style="margin-bottom:10px">
+      <div style="font-weight:800;font-size:14px;color:var(--blue);margin-bottom:10px">📅 ${d}</div>
+      ${byDate[d].map(r => `
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="font-weight:600;font-size:13px">${r.workerName} <span style="color:var(--sub);font-weight:400">· Bloc ${r.blocNum}</span></div>
+        <span class="badge" style="background:${TYPE_COLORS[r.type]}22;color:${TYPE_COLORS[r.type]}">${TYPE_LABELS[r.type]}</span>
+      </div>`).join('')}
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════════════ ABSENCE MODULE ════════════════════════════════════════════════ */
+function showAbsTab(tab) {
+  ['form','log','stats','dismiss'].forEach(t => document.getElementById('absTab-'+t).style.display = t===tab?'block':'none');
+  document.querySelectorAll('#page-absence .stab').forEach((b,i) => b.classList.toggle('active',['form','log','stats','dismiss'][i]===tab));
+  if(tab==='log') { loadAllRecords().then(renderAbsLog); }
+  if(tab==='stats') { loadAllRecords().then(renderStats); }
+  if(tab==='dismiss') { loadAllRecords().then(() => renderDismiss(String(new Date().getFullYear()))); }
+}
+
+function onAbsBlocChange() {
+  const num = document.getElementById('absBloc').value;
+  const box = document.getElementById('absWorkerBox');
+  if(!num) { box.classList.remove('show'); return; }
+  const b = BLOCS.find(x => x.num===num);
+  document.getElementById('absWName').textContent = b.nom ? '👷 '+b.nom : '⚠️ Aucun agent enregistré';
+  document.getElementById('absWTel').textContent = b.tel ? '📞 '+b.tel : '';
+  let tags = '';
+  if(b.repos) tags += `<span class="w-tag w-rest">🏖 Repos: ${b.repos}</span>`;
+  if(b.remplacant) tags += `<span class="w-tag w-repl">🔄 Remplaçant : ${b.remplacant}</span>`;
+  document.getElementById('absWTags').innerHTML = tags;
+  box.classList.add('show');
+}
+
+function onAbsTypeChange() {
+  const t = document.getElementById('absType').value;
+  document.getElementById('absTimeFields').style.display = t==='late'?'block':'none';
+  document.getElementById('absEndField').style.display = t==='left_early'?'block':'none';
+}
+
+async function saveAbsence() {
+  const date = document.getElementById('absDate').value;
+  const blocNum = document.getElementById('absBloc').value;
+  const type = document.getElementById('absType').value;
+  const note = document.getElementById('absNote').value.trim();
+  const alertEl = document.getElementById('absAlert');
+  if(!date || !blocNum || !type) { alertEl.innerHTML = '<div class="alert alert-orange">⚠️ Veuillez remplir tous les champs</div>'; return; }
+  alertEl.innerHTML = '';
+  const bloc = BLOCS.find(b => b.num === blocNum);
+  const rec = { date, blocNum, workerName:bloc?bloc.nom:'', type, note, savedAt:new Date().toISOString() };
+  if(type==='late') { rec.startTime=document.getElementById('absStartTime').value; rec.actualTime=document.getElementById('absActualTime').value; }
+  if(type==='left_early') rec.endTime = document.getElementById('absEndTime').value;
+
+  const { error } = await sb.from('records').upsert(toDbRecord(rec), { onConflict: 'date,bloc_num' });
+  if(!error) {
+    const idx = cachedRecords.findIndex(c => c.date===rec.date && c.blocNum===rec.blocNum);
+    if(idx >= 0) cachedRecords[idx] = rec; else cachedRecords.unshift(rec);
+    alertEl.innerHTML = '<div class="alert alert-green">✅ Enregistré dans Supabase</div>';
+    document.getElementById('absNote').value = '';
+    document.getElementById('absType').value = '';
+    document.getElementById('absBloc').value = '';
+    document.getElementById('absWorkerBox').classList.remove('show');
+    document.getElementById('absTimeFields').style.display = 'none';
+    document.getElementById('absEndField').style.display = 'none';
+    setTimeout(() => alertEl.innerHTML = '', 3000);
+
+    const year = String(new Date().getFullYear());
+    const yr = cachedRecords.filter(r => r.blocNum===blocNum && r.date.startsWith(year));
+    const absNo = yr.filter(r => r.type==='absent_no').length;
+    const leftCnt = yr.filter(r => r.type==='left_early').length;
+    if(absNo >= MAX_ABSENT_NO || leftCnt >= MAX_LEFT_EARLY) showModal('⛔ Alerte de licenciement', `Agent ${bloc?.nom||blocNum} a dépassé la limite autorisée.\nUne mesure de licenciement doit être prise.`);
+  } else {
+    console.error(error);
+    alertEl.innerHTML = '<div class="alert alert-red">❌ Erreur d’enregistrement. Vérifiez la connexion.</div>';
+  }
+}
+
+function renderAbsLog() {
+  const filterBloc = document.getElementById('logFilterBloc').value;
+  let recs = cachedRecords.filter(r => !['present'].includes(r.type));
+  if(filterBloc) recs = recs.filter(r => r.blocNum===filterBloc);
+  const list = document.getElementById('absLogList');
+  if(recs.length===0) { list.innerHTML='<div class="empty"><div class="big">📋</div><p>Aucun enregistrement</p></div>'; return; }
+  list.innerHTML = recs.map(r => `
+    <div class="absence-item ${r.type==='absent_no'?'absent':r.type==='late'?'late':r.type==='left_early'?'left':''}">
+      <div class="ai-top">
+        <div><div class="ai-name">${r.workerName||'—'}</div><div class="ai-bloc">Bloc ${r.blocNum} · ${r.date}</div></div>
+        <span class="badge" style="background:${TYPE_COLORS[r.type]||'#ddd'}22;color:${TYPE_COLORS[r.type]||'#666'}">${TYPE_LABELS[r.type]||r.type}</span>
+      </div>
+      ${r.startTime&&r.actualTime?`<div class="ai-note">⏰ Horaire : ${r.startTime} | Arrivée : ${r.actualTime}</div>`:''}
+      ${r.endTime?`<div class="ai-note">🚪 Départ : ${r.endTime}</div>`:''}
+      ${r.note&&r.note!=='Pointage'?`<div class="ai-note">📝 ${r.note}</div>`:''}
+    </div>`).join('');
+}
+
+function renderStats() {
+  const year = String(new Date().getFullYear());
+  let html = WORKERS.map(b => {
+    const yr = cachedRecords.filter(r => r.blocNum===b.num && r.date.startsWith(year));
+    const absNo = yr.filter(r=>r.type==='absent_no').length;
+    const absN = yr.filter(r=>r.type==='absent_notif').length;
+    const late = yr.filter(r=>r.type==='late').length;
+    const left = yr.filter(r=>r.type==='left_early').length;
+    const pres = yr.filter(r=>r.type==='present').length;
+    const warn = absNo>=MAX_ABSENT_NO || left>=MAX_LEFT_EARLY;
+    return `<div class="card" style="border-right:4px solid ${warn?'var(--red)':'var(--border)'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div><div style="font-weight:800;font-size:15px">${b.nom}</div><div style="font-size:12px;color:var(--sub)">Bloc ${b.num}</div></div>
+        ${warn?'<span class="badge badge-red">⛔ Proposé au licenciement</span>':''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:12px">
+        ${[
+          {val:pres, label:'Présence', bg:'#E9F7EF', color:'#27AE60'},
+          {val:absNo, label:'Absence non signalée',bg:'#FDE8E8', color:'#E74C3C'},
+          {val:late, label:'Retard', bg:'#FEF3E2', color:'#F39C12'},
+          {val:absN, label:'Absence signalée', bg:'#EBF4FE', color:'#2E75B6'},
+          {val:left, label:'Départ anticipé', bg:'#FDE8E8', color:'#E74C3C'},
+        ].map(s=>`<div style="background:${s.bg};border-radius:8px;padding:8px;text-align:center"><div style="font-size:20px;font-weight:900;color:${s.color}">${s.val}</div><div style="color:var(--sub)">${s.label}</div></div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('absStatsContent').innerHTML = html || '<div class="empty"><div class="big">📊</div><p>Aucune donnée</p></div>';
+}
+
+function getDismissable(year) {
+  return WORKERS.filter(b => {
+    const yr = cachedRecords.filter(r => r.blocNum===b.num && r.date.startsWith(year));
+    return yr.filter(r=>r.type==='absent_no').length>=MAX_ABSENT_NO || yr.filter(r=>r.type==='left_early').length>=MAX_LEFT_EARLY;
+  });
+}
+
+function renderDismiss(year) {
+  const list = document.getElementById('dismissList');
+  const d = getDismissable(year);
+  if(d.length===0) { list.innerHTML='<div class="empty"><div class="big">✅</div><p>Aucun agent proposé au licenciement</p></div>'; return; }
+  list.innerHTML = d.map(b => {
+    const yr = cachedRecords.filter(r => r.blocNum===b.num && r.date.startsWith(year));
+    const absNo = yr.filter(r=>r.type==='absent_no').length;
+    const left = yr.filter(r=>r.type==='left_early').length;
+    return `<div class="dismiss-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="dismiss-name">⛔ ${b.nom}</div>
+          <div style="font-size:12px;color:var(--sub);margin-top:2px">Bloc ${b.num} ${b.tel?'· '+b.tel:''}</div>
+          ${absNo>=MAX_ABSENT_NO?`<div style="font-size:12px;color:var(--red);margin-top:4px">• ${absNo} Absence non signalée (limite : ${MAX_ABSENT_NO})</div>`:''}
+          ${left>=MAX_LEFT_EARLY?`<div style="font-size:12px;color:var(--red);margin-top:2px">• ${left} Départ anticipé (limite : ${MAX_LEFT_EARLY})</div>`:''}
+        </div>
+        <div style="font-size:28px;font-weight:900;color:var(--red)">${Math.max(absNo,left)}×</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════════════ REPLACEMENT MODULE ════════════════════════════════════════════════ */
+function findReplacement() {
+  const day = document.getElementById('replDay').value;
+  const blocNum = document.getElementById('replBloc').value;
+  const res = document.getElementById('replResult');
+  const noRes = document.getElementById('noRepl');
+  const dayList = document.getElementById('replDayList');
+  res.classList.remove('show'); noRes.classList.remove('show'); dayList.innerHTML = '';
+
+  if(!day && !blocNum) { noRes.classList.add('show'); return; }
+
+  // ═══ Cas 1 : bloc sélectionné (avec ou sans jour) → détails complets de l’agent ═══
+  if(blocNum) {
+    const b = BLOCS.find(x => x.num === blocNum);
+    if(!b) { noRes.classList.add('show'); return; }
+    document.getElementById('replResultTitle').textContent = '👷 Détails de l’agent';
+    document.getElementById('replWorkerName').textContent = b.nom ? '👷 '+b.nom : '⚠️ Aucun agent enregistré pour ce bloc';
+    document.getElementById('replWorkerInfo').textContent = `Bloc ${b.num}${b.adr?' · '+b.adr:''}${b.tel?' · 📞 '+b.tel:''}`;
+    let tags = '';
+    if(b.repos) tags += `<span class="w-tag w-rest">🏖 Repos: ${b.repos}</span>`;
+    if(b.group_num) tags += `<span class="w-tag w-repl">👥 Groupe: ${b.group_num}</span>`;
+    if(b.is_substitute) tags += `<span class="w-tag w-repl">🔄 Remplaçant principal</span>`;
+    document.getElementById('replWorkerTags').innerHTML = tags;
+    document.getElementById('replName').textContent = b.remplacant ? '👷 '+b.remplacant : '⚠️ Aucun remplaçant enregistré';
+    document.getElementById('replInfo').textContent = b.repos ? `Remplace le: ${b.repos}` : '';
+    document.getElementById('replTelLink').innerHTML = b.remplacant_tel ? `<a href="tel:${b.remplacant_tel}" style="background:var(--green);color:white;border-radius:20px;padding:8px 18px;font-size:14px;font-weight:700;text-decoration:none">📞 ${b.remplacant_tel}</a>` : '';
+    res.classList.add('show');
+    return;
+  }
+
+  // ═══ Cas 2 : jour sélectionné sans bloc → liste de tous les agents en repos ce jour ═══
+  const people = WORKERS.filter(b => b.repos === day);
+  if(people.length === 0) { noRes.classList.add('show'); return; }
+  dayList.innerHTML = `<div class="card-title" style="margin-top:10px"><span>📅</span>Agents en repos le ${day} (${people.length})</div>` +
+    people.map(p => `<div class="absence-item">
+      <div class="ai-top">
+        <div><div class="ai-name">👷 ${p.nom}</div><div class="ai-bloc">Bloc ${p.num}${p.group_num?' · Groupe '+p.group_num:''}</div></div>
+        ${p.tel?`<a href="tel:${p.tel}" style="background:var(--blue2);color:white;border-radius:20px;padding:6px 12px;font-size:12px;text-decoration:none">📞</a>`:''}
+      </div>
+      ${p.remplacant?`<div class="ai-note">🔄 Remplaçant : ${p.remplacant}${p.remplacant_tel?' · '+p.remplacant_tel:''}</div>`:'<div class="ai-note">⚠️ Aucun remplaçant enregistré</div>'}
+    </div>`).join('');
+}
+
+function renderReplacementRoster() {
+  const c = document.getElementById('replacementRoster');
+  if(!c) return;
+  const replacers = {};
+  WORKERS.forEach(b => { if(b.remplacant) { if(!replacers[b.remplacant]) replacers[b.remplacant]=[]; replacers[b.remplacant].push(b.nom); } });
+  let html = Object.keys(replacers).map(name => {
+    const repBloc = BLOCS.find(b => b.nom === name);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;background:#E9F7EF;border-radius:10px;padding:12px;margin-bottom:8px">
+      <div>
+        <div style="font-weight:800;color:#1A6B3C">🔄 ${name} — Remplaçant</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:2px">Remplace : ${replacers[name].join('·')}</div>
+        ${repBloc && repBloc.repos?`<span style="background:#FEF3E2;color:#9C5A00;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600;display:inline-block;margin-top:4px">🏖 Repos: ${repBloc.repos}</span>`:''}
+      </div>
+      ${repBloc && repBloc.tel?`<a href="tel:${repBloc.tel}" style="background:var(--green);color:white;border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;text-decoration:none">📞</a>`:''}
+    </div>`;
+  }).join('');
+  html += WORKERS.map(b => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-weight:700;font-size:14px">👷 ${b.nom}</div>
+        <div style="font-size:12px;color:var(--sub)">Bloc ${b.num}</div>
+        ${b.repos?`<span style="background:#FEF3E2;color:#9C5A00;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:600;display:inline-block;margin-top:3px">🏖 ${b.repos}</span>`:''}
+      </div>
+      ${b.tel?`<a href="tel:${b.tel}" style="background:var(--green);color:white;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;text-decoration:none">📞</a>`:''}
+    </div>`).join('');
+  c.innerHTML = html || '<div class="empty"><div class="big">👥</div><p>Aucun agent pour le moment</p></div>';
+}
+
+/* ════════════════════════════════════════════════ SALARY MODULE ════════════════════════════════════════════════ */
+async function loadSalaryData() {
+  const month = parseInt(document.getElementById('salMonth').value);
+  const year = parseInt(document.getElementById('salYear').value);
+  const wage = parseInt(document.getElementById('dailyWage').value) || DAILY_WAGE_DEFAULT;
+  const prefix = `${year}-${String(month).padStart(2,'0')}`;
+  const all = await loadAllRecords();
+  const list = document.getElementById('salaryList');
+  list.innerHTML = WORKERS.map(b => {
+    const recs = all.filter(r => r.blocNum===b.num && r.date.startsWith(prefix));
+    const pres = recs.filter(r=>r.type==='present').length;
+    const late = recs.filter(r=>r.type==='late').length;
+    const absN = recs.filter(r=>r.type==='absent_notif').length;
+    const absNo = recs.filter(r=>r.type==='absent_no').length;
+    const left = recs.filter(r=>r.type==='left_early').length;
+    const worked = pres + late + absN;
+    const salary = worked * wage;
+    return `<div class="salary-card">
+      <div class="salary-worker">
+        <div><div style="font-weight:800;font-size:15px">👷 ${b.nom}</div><div style="font-size:12px;color:var(--sub)">Bloc ${b.num}</div></div>
+        <div><div class="salary-amount">${salary} DH</div><div class="salary-days">${worked} jour(s) de travail</div></div>
+      </div>
+      <div class="salary-grid">
+        ${[
+          {val:pres, label:'Présence', bg:'#E9F7EF', color:'#27AE60'},
+          {val:late, label:'Retard', bg:'#FEF3E2', color:'#F39C12'},
+          {val:absN, label:'Absence signalée',bg:'#EBF4FE',color:'#2E75B6'},
+          {val:absNo,label:'Absence', bg:'#FDE8E8', color:'#E74C3C'},
+        ].map(s=>`<div class="salary-cell" style="background:${s.bg}"><div class="salary-val" style="color:${s.color}">${s.val}</div><div class="salary-lbl">${s.label}</div></div>`).join('')}
+      </div>
+      <button onclick="printSalary('${b.num}',${month},${year},${wage})" style="width:100%;padding:10px;background:linear-gradient(135deg,var(--navy),var(--blue2));color:white;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">🖨️ Imprimer la fiche de paie</button>
+    </div>`;
+  }).join('');
+}
+
+function printSalary(blocNum, month, year, wage) {
+  const prefix = `${year}-${String(month).padStart(2,'0')}`;
+  const bloc = BLOCS.find(b => b.num===blocNum);
+  const recs = cachedRecords.filter(r => r.blocNum===blocNum && r.date.startsWith(prefix));
+  const pres = recs.filter(r=>r.type==='present').length;
+  const late = recs.filter(r=>r.type==='late').length;
+  const absN = recs.filter(r=>r.type==='absent_notif').length;
+  const absNo = recs.filter(r=>r.type==='absent_no').length;
+  const left = recs.filter(r=>r.type==='left_early').length;
+  const worked = pres + late + absN;
+  const salary = worked * wage;
+  const monthName = MONTHS_AR[month-1];
+  document.getElementById('printContent').innerHTML = `
+    <div class="print-report">
+      <div class="print-header">
+        <div style="font-size:36px">🏢</div>
+        <div style="font-weight:900;font-size:20px;color:var(--navy)">Axial Facilities</div>
+        <div style="font-size:13px;color:var(--sub)">Gestion Toilettes Publiques — Casablanca</div>
+        <div style="font-weight:800;font-size:16px;color:var(--blue);margin-top:8px">Fiche de paie mensuelle</div>
+        <div style="font-weight:700;font-size:14px;color:var(--sub)">${monthName} ${year}</div>
+      </div>
+      <div style="background:#EBF4FE;border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-weight:800;font-size:16px">👷 ${bloc?.nom||blocNum}</div>
+        <div style="font-size:13px;color:var(--sub);margin-top:2px">Bloc ${blocNum} — ${bloc?.adr||''}</div>
+        ${bloc?.tel?`<div style="font-size:13px;color:var(--sub)">📞 ${bloc.tel}</div>`:''}
+        <div style="font-size:12px;color:var(--sub);margin-top:4px">Date d’émission: ${new Date().toLocaleDateString('fr-FR')}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        ${[
+          {val:pres, label:'Jours de présence', bg:'#E9F7EF',color:'#27AE60'},
+          {val:absN, label:'Absence signalée (payée)', bg:'#EBF4FE',color:'#2E75B6'},
+          {val:absNo, label:'Absence non signalée', bg:'#FDE8E8',color:'#E74C3C'},
+          {val:left, label:'Départ anticipé', bg:'#FDE8E8',color:'#E74C3C'},
+        ].map(s=>`<div style="background:${s.bg};border-radius:10px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:900;color:${s.color}">${s.val}</div><div style="font-size:12px;color:var(--sub);font-weight:600">${s.label}</div></div>`).join('')}
+      </div>
+      <div style="border:2px solid var(--blue);border-radius:12px;overflow:hidden;margin-bottom:14px">
+        <div style="background:var(--blue);color:white;padding:10px 14px;font-weight:800">💰 Calcul de la paie</div>
+        <div style="padding:14px">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px"><span style="color:var(--sub)">Total des jours de travail comptabilisés</span><span style="font-weight:700">${worked} jour(s)</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px"><span style="color:var(--sub)">Salaire journalier</span><span style="font-weight:700">${wage} DH</span></div>
+          <div style="display:flex;justify-content:space-between;padding:12px 0 0;font-size:18px"><span style="font-weight:800;color:var(--navy)">Salaire total</span><span style="font-weight:900;color:var(--green)">${salary} DH</span></div>
+        </div>
+      </div>
+      ${recs.length>0?`
+      <div style="margin-bottom:14px">
+        <div style="font-weight:800;font-size:13px;color:var(--blue2);margin-bottom:8px">📋 Détail du registre mensuel</div>
+        ${recs.sort((a,b)=>a.date.localeCompare(b.date)).map(r=>`
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--sub)">${r.date}</span><span style="font-weight:700;color:${TYPE_COLORS[r.type]||'#666'}">${TYPE_LABELS[r.type]||r.type}</span></div>`).join('')}
+      </div>`:''}
+      <div class="print-sig">
+        <div class="sig-box"><div style="font-weight:700;font-size:13px;color:var(--sub)">Signature de l’agent</div><div class="sig-line">${bloc?.nom||''}</div></div>
+        <div class="sig-box"><div style="font-weight:700;font-size:13px;color:var(--sub)">Signature du responsable</div><div class="sig-line">Axial Facilities</div></div>
+      </div>
+    </div>`;
+  document.getElementById('salaryMainView').style.display = 'none';
+  document.getElementById('salaryPrintView').style.display = 'block';
+}
+
+function closePrint() {
+  document.getElementById('salaryPrintView').style.display = 'none';
+  document.getElementById('salaryMainView').style.display = 'block';
+}
+
+/* ════════════════════════════════════════════════ MODAL ════════════════════════════════════════════════ */
+function showModal(title, body) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').textContent = body;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); }
+
+function confirmResetConfig() {
+  document.getElementById('modalTitle').textContent = '⚙️ Réinitialiser la connexion';
+  document.getElementById('modalBody').textContent = 'Voulez-vous supprimer la configuration Supabase enregistrée (URL et clé) et revenir à la page de configuration pour la ressaisir ?';
+  document.querySelector('#modalOverlay .modal-btns').innerHTML = `
+    <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-primary" onclick="executeResetConfig()">⚙️ Réinitialiser</button>`;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function executeResetConfig() {
+  localStorage.removeItem(SUPA_URL_KEY);
+  localStorage.removeItem(SUPA_ANON_KEY);
+  document.querySelector('#modalOverlay .modal-btns').innerHTML = `<button class="btn btn-primary" onclick="closeModal()">OK</button>`;
+  location.reload();
+}
+
+/* ════════════════════════════════════════════════ ADMIN: BLOCS & WORKERS CRUD ════════════════════════════════════════════════ */
+let bfEditingNum = null;
+let bfPhotoFileObj = null;
+
+function renderAdminList() {
+  const list = document.getElementById('adminList');
+  if(!list) return;
+  const q = (document.getElementById('adminSearch')?.value || '').trim().toLowerCase();
+  let items = BLOCS;
+  if(q) {
+    items = items.filter(b =>
+      (b.nom||'').toLowerCase().includes(q) ||
+      String(b.num||'').toLowerCase().includes(q) ||
+      (b.adr||'').toLowerCase().includes(q) ||
+      (b.bloc_label||'').toLowerCase().includes(q)
+    );
+  }
+  if(items.length===0) { list.innerHTML = '<div class="empty"><div class="big">🗂️</div><p>Aucun bloc</p></div>'; return; }
+  list.innerHTML = items.map(b => `
+    <div class="admin-card">
+      ${b.photo_url ? `<img class="admin-photo" src="${b.photo_url}">` : `<div class="admin-photo-empty">👤</div>`}
+      <div class="admin-info">
+        <div class="admin-name">${b.nom || '(sans agent)'} <span style="color:var(--sub);font-weight:600;font-size:12px">· Bloc ${b.num}</span></div>
+        <div class="admin-sub">
+          📍 ${b.adr || '—'}<br>
+          ${b.tel?`📞 ${b.tel} · `:''}${b.repos?`🏖 ${b.repos} · `:''}${b.remplacant?`🔄 ${b.remplacant}`:''}
+        </div>
+      </div>
+      <div class="admin-actions">
+        <button class="btn-edit" onclick="openBlocForm('${b.num}')">✏️ Modifier</button>
+        <button class="btn-del" onclick="confirmDeleteBloc('${b.num}')">🗑️ Supprimer</button>
+      </div>
+    </div>`).join('');
+}
+
+function openBlocForm(num) {
+  bfEditingNum = num;
+  bfPhotoFileObj = null;
+  const b = num ? BLOCS.find(x => x.num === num) : null;
+  document.getElementById('blocFormTitle').textContent = num ? '✏️ Modifier le bloc' : '➕ Ajouter un nouveau bloc';
+  document.getElementById('bfNum').value = b ? b.num : '';
+  document.getElementById('bfNum').disabled = !!num;
+  document.getElementById('bfAdr').value = b ? (b.adr||'') : '';
+  document.getElementById('bfBlocLabel').value = b ? (b.bloc_label||'') : '';
+  document.getElementById('bfGps').value = b ? (b.gps||'') : '';
+  document.getElementById('bfNom').value = b ? (b.nom||'') : '';
+  document.getElementById('bfTel').value = b ? (b.tel||'') : '';
+  document.getElementById('bfRepos').value = b ? (b.repos||'') : '';
+  document.getElementById('bfRemplacant').value = b ? (b.remplacant||'') : '';
+  document.getElementById('bfRemplacantTel').value = b ? (b.remplacant_tel||'') : '';
+  document.getElementById('bfGroupNum').value = b ? (b.group_num||'') : '';
+  document.getElementById('bfIsSub').value = b && b.is_substitute ? 'true' : 'false';
+  document.getElementById('bfPhotoFile').value = '';
+  const preview = document.getElementById('bfPhotoPreview');
+  if(b && b.photo_url) { preview.src = b.photo_url; preview.classList.add('show'); } else { preview.classList.remove('show'); }
+  document.getElementById('blocFormError').innerHTML = '';
+  document.getElementById('blocFormOverlay').classList.add('show');
+}
+
+function closeBlocForm() { document.getElementById('blocFormOverlay').classList.remove('show'); }
+
+function previewBlocPhoto(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  bfPhotoFileObj = file;
+  const preview = document.getElementById('bfPhotoPreview');
+  preview.src = URL.createObjectURL(file);
+  preview.classList.add('show');
+}
+
+async function saveBlocForm() {
+  const num = document.getElementById('bfNum').value.trim();
+  const errEl = document.getElementById('blocFormError');
+  if(!num) { errEl.innerHTML = '<div class="alert alert-orange">⚠️ Le numéro de bloc est obligatoire</div>'; return; }
+  if(!bfEditingNum && BLOCS.find(b => b.num === num)) { errEl.innerHTML = '<div class="alert alert-orange">⚠️ Ce numéro de bloc est déjà utilisé</div>'; return; }
+  errEl.innerHTML = '';
+
+  const bloc = {
+    num,
+    adr: document.getElementById('bfAdr').value.trim(),
+    bloc_label: document.getElementById('bfBlocLabel').value.trim(),
+    gps: document.getElementById('bfGps').value.trim(),
+    nom: document.getElementById('bfNom').value.trim(),
+    tel: document.getElementById('bfTel').value.trim(),
+    repos: document.getElementById('bfRepos').value.trim(),
+    remplacant: document.getElementById('bfRemplacant').value.trim(),
+    remplacant_tel: document.getElementById('bfRemplacantTel').value.trim(),
+    group_num: document.getElementById('bfGroupNum').value.trim(),
+    is_substitute: document.getElementById('bfIsSub').value === 'true',
+    photo_url: bfEditingNum ? (BLOCS.find(b=>b.num===bfEditingNum)?.photo_url || null) : null
+  };
+
+  const btn = document.getElementById('bfSaveBtn');
+  btn.textContent = '⏳ Enregistrement en cours...'; btn.disabled = true;
+
+  if(bfPhotoFileObj) {
+    const ext = bfPhotoFileObj.name.split('.').pop();
+    const path = `bloc-${num}-${Date.now()}.${ext}`;
+    const { error: upErr } = await sb.storage.from('worker-photos').upload(path, bfPhotoFileObj, { upsert:true });
+    if(upErr) {
+      errEl.innerHTML = '<div class="alert alert-red">❌ Échec du téléversement de la photo: ' + upErr.message + '</div>';
+      btn.textContent = '💾 Enregistrer'; btn.disabled = false;
+      return;
+    }
+    const { data: pub } = sb.storage.from('worker-photos').getPublicUrl(path);
+    bloc.photo_url = pub.publicUrl;
+  }
+
+  const { error } = await sb.from('blocs').upsert(toDbBloc(bloc), { onConflict: 'num' });
+  btn.textContent = '💾 Enregistrer'; btn.disabled = false;
+  if(error) { errEl.innerHTML = '<div class="alert alert-red">❌ Erreur d’enregistrement : ' + error.message + '</div>'; return; }
+
+  await loadBlocsFromDB();
+  populateSelects();
+  renderReplacementRoster();
+  updateDashboard();
+  renderAdminList();
+  closeBlocForm();
+  showModal('✅ Enregistré', `Données du bloc ${num} enregistrées avec succès`);
+}
+
+function confirmDeleteBloc(num) {
+  const b = BLOCS.find(x => x.num === num);
+  pendingDeleteNum = num;
+  document.getElementById('modalTitle').textContent = '🗑️ Confirmer la suppression';
+  document.getElementById('modalBody').textContent = `Êtes-vous sûr(e) de vouloir supprimer le bloc ${num}${b&&b.nom?' ('+b.nom+')':''} ? Tous les enregistrements associés seront définitivement supprimés.`;
+  document.querySelector('#modalOverlay .modal-btns').innerHTML = `
+    <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-primary" style="background:linear-gradient(135deg,#C0392B,var(--red))" onclick="executeDeleteBloc()">🗑️ Supprimer définitivement</button>`;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+let pendingDeleteNum = null;
+async function executeDeleteBloc() {
+  if(!pendingDeleteNum) return;
+  const { error } = await sb.from('blocs').delete().eq('num', pendingDeleteNum);
+  document.querySelector('#modalOverlay .modal-btns').innerHTML = `<button class="btn btn-primary" onclick="closeModal()">OK</button>`;
+  closeModal();
+  if(error) { showModal('❌ Erreur', 'Échec de la suppression du bloc : ' + error.message); return; }
+  pendingDeleteNum = null;
+  await loadBlocsFromDB();
+  populateSelects();
+  renderReplacementRoster();
+  updateDashboard();
+  renderAdminList();
+}
+
+/* ════════════════════════════════════════════════ WHATSAPP BULK SEND ════════════════════════════════════════════════ */
+function cleanPhone(tel) { return (tel||'').replace(/[^0-9+]/g,'').replace(/^\+/,''); }
+
+function renderWaWorkersList() {
+  const list = document.getElementById('waWorkersList');
+  const withPhone = WORKERS.filter(b => b.tel);
+  const withoutPhone = WORKERS.filter(b => !b.tel);
+  list.innerHTML =
+    withPhone.map(b => `
+    <div class="wa-worker-row">
+      <input type="checkbox" class="wa-check" value="${b.num}" checked>
+      <div><div class="wa-worker-name">👷 ${b.nom}</div><div class="wa-worker-tel">📞 ${b.tel} · Bloc ${b.num}</div></div>
+    </div>`).join('') +
+    withoutPhone.map(b => `
+    <div class="wa-worker-row disabled">
+      <input type="checkbox" disabled>
+      <div><div class="wa-worker-name">👷 ${b.nom}</div><div class="wa-worker-tel">Aucun numéro de téléphone · Bloc ${b.num}</div></div>
+    </div>`).join('');
+}
+
+function waSelectAll(state) {
+  document.querySelectorAll('.wa-check').forEach(cb => cb.checked = state);
+}
+
+async function startWaBulkSend() {
+  const message = document.getElementById('waMessage').value.trim();
+  if(!message) { showModal('⚠️','Veuillez d’abord écrire le texte du message'); return; }
+  const checked = Array.from(document.querySelectorAll('.wa-check:checked')).map(cb => cb.value);
+  if(checked.length === 0) { showModal('⚠️','Veuillez sélectionner au moins un agent'); return; }
+
+  waStopFlag = false;
+  document.getElementById('waStartBtn').style.display = 'none';
+  document.getElementById('waStopBtn').style.display = 'block';
+  const progressBox = document.getElementById('waProgressBox');
+  progressBox.classList.add('show');
+
+  for(let i=0; i<checked.length; i++) {
+    if(waStopFlag) break;
+    const num = checked[i];
+    const b = BLOCS.find(x => x.num === num);
+    const phone = cleanPhone(b.tel);
+    document.getElementById('waProgressText').textContent = `Ouverture de WhatsApp pour ${b.nom} (${i+1} sur ${checked.length})...`;
+    document.getElementById('waProgressFill').style.width = `${Math.round(((i+1)/checked.length)*100)}%`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    if(i < checked.length - 1) await new Promise(res => setTimeout(res, 10000));
+  }
+
+  document.getElementById('waStartBtn').style.display = 'block';
+  document.getElementById('waStopBtn').style.display = 'none';
+  if(!waStopFlag) document.getElementById('waProgressText').textContent = `✅ WhatsApp ouvert pour tous les agents sélectionnés (${checked.length})`;
+  else document.getElementById('waProgressText').textContent = `⏹️ Envoi arrêté`;
+}
+
+function stopWaBulkSend() { waStopFlag = true; }
+
+/* ════════════════════════════════════════════════ SHARED: worker select populate ════════════════════════════════════════════════ */
+function populateWorkerSelect(id) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  const keepFirst = el.firstElementChild;
+  el.innerHTML = '';
+  if(keepFirst) el.appendChild(keepFirst);
+  WORKERS.forEach(b => {
+    const o = document.createElement('option');
+    o.value = b.num;
+    o.textContent = `${b.nom} (Bloc ${b.num})`;
+    el.appendChild(o);
+  });
+}
+
+function onCongeWorkerChange(prefix) {
+  const num = document.getElementById(prefix+'Worker').value;
+  const b = BLOCS.find(x => x.num === num);
+  if(!b) return;
+  const replEl = document.getElementById(prefix+'Repl');
+  const replTelEl = document.getElementById(prefix+'ReplTel');
+  if(replEl && !replEl.value) replEl.value = b.remplacant || '';
+  if(replTelEl && !replTelEl.value) replTelEl.value = b.remplacant_tel || '';
+}
+
+/* ════════════════════════════════════════════════ PLANNING (Matrix, auto-generated) ════════════════════════════════════════════════ */
+const DAYS_ORDER = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+
+function renderPlanning() {
+  const groups = {};
+  BLOCS.forEach(b => {
+    if(!b.group_num) return;
+    if(!groups[b.group_num]) groups[b.group_num] = [];
+    groups[b.group_num].push(b);
+  });
+  const groupNums = Object.keys(groups).sort();
+  const el = document.getElementById('planningTable');
+  if(groupNums.length === 0) { el.innerHTML = '<div class="empty"><div class="big">📆</div><p>Aucun groupe défini pour le moment. Ajoutez le « Groupe » pour chaque agent depuis la page de gestion.</p></div>'; return; }
+
+  let html = '<table class="plan-table"><thead><tr><th>Groupe</th>' + DAYS_ORDER.map(d=>`<th>${d}</th>`).join('') + '</tr></thead><tbody>';
+  groupNums.forEach(g => {
+    const members = groups[g];
+    const sub = members.find(m => m.is_substitute);
+    html += `<tr><td class="grp-cell">${g}${sub?'<br><span style="font-size:9px;font-weight:400">Remplaçant: '+sub.nom+'</span>':''}</td>`;
+    DAYS_ORDER.forEach(day => {
+      const person = members.find(m => m.repos === day);
+      if(!person) { html += `<td class="plan-cell-empty">—</td>`; return; }
+      const cls = person.is_substitute ? 'plan-cell-sub' : '';
+      html += `<td class="${cls}"><div class="plan-cell-name">${person.nom}</div>${person.tel?`<div style="font-size:9px;color:var(--sub)">${person.tel}</div>`:''}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+/* ════════════════════════════════════════════════ WEEKLY REST DAYS (simple view) ════════════════════════════════════════════════ */
+function renderWeekly() {
+  const el = document.getElementById('weeklyList');
+  const today = DAYS_ORDER[ (new Date().getDay()+6)%7 ]; // Convertit getDay (0=dimanche) vers notre ordre de jours
+  let html = '';
+  DAYS_ORDER.forEach(day => {
+    const people = WORKERS.filter(b => b.repos === day);
+    html += `<div class="weekly-day-card">
+      <div class="weekly-day-title">${day===today?'🔴':'📅'} ${day} ${day===today?'(Aujourd’hui)':''}</div>
+      ${people.length===0 ? '<div style="font-size:12px;color:var(--sub)">Personne en repos ce jour</div>' :
+        people.map(p => `<div class="weekly-worker-row">
+          <div><div style="font-weight:700;font-size:13px">👷 ${p.nom}</div><div style="font-size:11px;color:var(--sub)">Bloc ${p.num}${p.remplacant?' · Remplaçant: '+p.remplacant:''}</div></div>
+          ${p.remplacant_tel?`<a href="tel:${p.remplacant_tel}" style="background:var(--green);color:white;border-radius:20px;padding:6px 12px;font-size:12px;text-decoration:none">📞</a>`:''}
+        </div>`).join('')}
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+/* ════════════════════════════════════════════════ CONGÉ / MALADIE ════════════════════════════════════════════════ */
+let cachedConges = [];
+
+async function loadConges() {
+  if(!sb) return [];
+  const { data, error } = await sb.from('conges').select('*').order('start_date',{ascending:false});
+  if(!error && data) cachedConges = data;
+  return cachedConges;
+}
+
+function congeStatusOf(c) {
+  const today = new Date().toISOString().split('T')[0];
+  if(c.status === 'cancelled') return 'cancelled';
+  if(today < c.start_date) return 'planned';
+  if(today > c.end_date) return 'completed';
+  return 'active';
+}
+
+function showCongeTab(tab) {
+  ['list','add','priority'].forEach(t => { const e = document.getElementById('congeTab-'+t); if(e) e.style.display = t===tab?'block':'none'; });
+  document.querySelectorAll('#page-conges .stab').forEach((b,i) => b.classList.toggle('active',['list','add','priority'][i]===tab));
+  if(tab==='list') loadConges().then(() => renderCongesList('conge'));
+  if(tab==='priority') loadConges().then(renderPriority);
+}
+
+function showMaladieTab(tab) {
+  ['list','add'].forEach(t => { const e = document.getElementById('maladieTab-'+t); if(e) e.style.display = t===tab?'block':'none'; });
+  document.querySelectorAll('#page-maladie .stab').forEach((b,i) => b.classList.toggle('active',['list','add'][i]===tab));
+  if(tab==='list') loadConges().then(() => renderCongesList('maladie'));
+}
+
+function renderCongesList(type) {
+  const list = document.getElementById(type==='conge' ? 'congesList' : 'maladieList');
+  const items = cachedConges.filter(c => (c.type||'conge') === type);
+  if(items.length===0) { list.innerHTML = `<div class="empty"><div class="big">${type==='conge'?'🏖️':'🤒'}</div><p>Aucun enregistrement</p></div>`; return; }
+  list.innerHTML = items.map(c => {
+    const st = congeStatusOf(c);
+    const stLabel = {planned:'⏳ À venir',active:'🟠 En cours',completed:'✅ Terminé',cancelled:'❌ Annulé'}[st];
+    return `<div class="conge-card ${st}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="conge-name">${type==='conge'?'🏖️':'🤒'} ${c.worker_name}</div>
+          <div class="conge-dates">Du ${c.start_date} au ${c.end_date} (${c.duration_days} jour(s))</div>
+        </div>
+        <span class="badge" style="background:var(--grey)">${stLabel}</span>
+      </div>
+      ${c.remplacant?`<div class="conge-repl">🔄 Remplaçant : ${c.remplacant} ${c.remplacant_tel?'· '+c.remplacant_tel:''}</div>`:''}
+      ${c.note?`<div class="ai-note">📝 ${c.note}</div>`:''}
+      <button class="note-del" style="margin-top:6px" onclick="deleteConge('${c.id}','${type}')">🗑️ Supprimer</button>
+    </div>`;
+  }).join('');
+}
+
+async function saveConge(type) {
+  const p = type==='conge' ? 'cg' : 'ml';
+  const num = document.getElementById(p+'Worker').value;
+  const start = document.getElementById(p+'Start').value;
+  const duration = parseInt(document.getElementById(p+'Duration').value) || 1;
+  const repl = document.getElementById(p+'Repl').value.trim();
+  const replTel = document.getElementById(p+'ReplTel').value.trim();
+  const note = document.getElementById(p+'Note').value.trim();
+  const alertEl = document.getElementById(p+'Alert');
+  if(!num || !start) { alertEl.innerHTML = '<div class="alert alert-orange">⚠️ Veuillez sélectionner l’agent et la date de début</div>'; return; }
+  const b = BLOCS.find(x => x.num === num);
+  const row = { bloc_num:num, worker_name:b?b.nom:'', start_date:start, duration_days:duration, remplacant:repl, remplacant_tel:replTel, note, type };
+  const { error } = await sb.from('conges').insert(row);
+  if(error) { alertEl.innerHTML = '<div class="alert alert-red">❌ Erreur : '+error.message+'</div>'; return; }
+  alertEl.innerHTML = '<div class="alert alert-green">✅ Enregistré</div>';
+  setTimeout(() => alertEl.innerHTML = '', 2500);
+  ['Worker','Start','Repl','ReplTel','Note'].forEach(f => { const e = document.getElementById(p+f); if(e) e.value=''; });
+  document.getElementById(p+'Duration').value = type==='conge' ? 10 : 3;
+  await loadConges();
+  if(type==='conge') { showCongeTab('list'); } else { showMaladieTab('list'); }
+}
+
+async function deleteConge(id, type) {
+  const { error } = await sb.from('conges').delete().eq('id', id);
+  if(!error) { await loadConges(); renderCongesList(type); }
+}
+
+function renderPriority() {
+  const el = document.getElementById('priorityList');
+  // Seul le congé annuel entre dans le calcul de la priorité équitable
+  const congeHistory = cachedConges.filter(c => (c.type||'conge')==='conge');
+  const ranked = WORKERS.map(b => {
+    const past = congeHistory.filter(c => c.worker_name === b.nom);
+    const lastEnd = past.length ? past.map(c=>c.end_date).sort().reverse()[0] : null;
+    return { nom: b.nom, num: b.num, lastEnd };
+  }).sort((a,z) => {
+    if(!a.lastEnd && !z.lastEnd) return 0;
+    if(!a.lastEnd) return -1;
+    if(!z.lastEnd) return 1;
+    return a.lastEnd.localeCompare(z.lastEnd);
+  });
+  el.innerHTML = ranked.map((r,i) => `
+    <div class="prio-row">
+      <div class="prio-rank ${i<3?'top':''}">${i+1}</div>
+      <div class="prio-info">
+        <div class="prio-name">👷 ${r.nom}</div>
+        <div class="prio-sub">${r.lastEnd ? 'Dernier congé: '+r.lastEnd : 'N’a pas encore pris de congé'}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════════════ NOTES (with due-date reminders) ════════════════════════════════════════════════ */
+let cachedNotes = [];
+const NOTE_REMINDER_DAYS = 3; // Une note est considérée « proche » s’il lui reste 3 jours ou moins
+
+async function loadNotes() {
+  if(!sb) return [];
+  const { data, error } = await sb.from('notes').select('*').order('note_date',{ascending:false});
+  if(!error && data) cachedNotes = data;
+  return cachedNotes;
+}
+
+function noteUrgency(n) {
+  if(!n.end_date) return 'none';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const end = new Date(n.end_date);
+  const diffDays = Math.round((end-today)/86400000);
+  if(diffDays < 0) return 'overdue';
+  if(diffDays <= NOTE_REMINDER_DAYS) return 'due-soon';
+  return 'none';
+}
+
+async function saveNote() {
+  const num = document.getElementById('ntWorker').value;
+  const date = document.getElementById('ntDate').value || new Date().toISOString().split('T')[0];
+  const endDate = document.getElementById('ntEndDate').value || null;
+  const text = document.getElementById('ntText').value.trim();
+  if(!text) { showModal('⚠️','Veuillez écrire le texte de la note'); return; }
+  const b = BLOCS.find(x => x.num === num);
+  const row = { note_date:date, end_date:endDate, bloc_num:num||null, worker_name:b?b.nom:'', text };
+  const { error } = await sb.from('notes').insert(row);
+  if(error) { showModal('❌ Erreur', error.message); return; }
+  document.getElementById('ntText').value = '';
+  document.getElementById('ntEndDate').value = '';
+  await loadNotes();
+  renderNotes();
+  checkNoteReminders();
+}
+
+async function deleteNote(id) {
+  const { error } = await sb.from('notes').delete().eq('id', id);
+  if(!error) { await loadNotes(); renderNotes(); checkNoteReminders(); }
+}
+
+function renderNotes() {
+  const dateEl = document.getElementById('ntDate');
+  if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  loadNotes().then(() => {
+    const list = document.getElementById('notesList');
+    if(cachedNotes.length===0) { list.innerHTML = '<div class="empty"><div class="big">📝</div><p>Aucune note</p></div>'; return; }
+    list.innerHTML = cachedNotes.map(n => {
+      const urg = noteUrgency(n);
+      return `<div class="note-card ${urg==='due-soon'?'due-soon':urg==='overdue'?'overdue':''}">
+        <div class="note-date">📅 ${n.note_date} ${n.end_date?'← Échéance: '+n.end_date:''} ${urg==='overdue'?' ⚠️ En retard':urg==='due-soon'?' ⏰ Proche':''}</div>
+        ${n.worker_name?`<div class="note-worker">👷 ${n.worker_name}</div>`:''}
+        <div class="note-text">${n.text}</div>
+        <div class="note-foot"><span></span><button class="note-del" onclick="deleteNote('${n.id}')">🗑️ Supprimer</button></div>
+      </div>`;
+    }).join('');
+  });
+}
+
+async function checkNoteReminders() {
+  await loadNotes();
+  const urgent = cachedNotes.filter(n => noteUrgency(n) !== 'none');
+  const ha = document.getElementById('homeAlerts');
+  if(!ha) return;
+  if(urgent.length > 0) {
+    const extra = `<div class="alert alert-orange" onclick="navTo('page-notes')" style="cursor:pointer">📝 ${urgent.length} note(s) proche(s) de l’échéance ou en retard — cliquez pour vérifier</div>`;
+    if(!ha.innerHTML.includes('note proche')) ha.innerHTML += extra;
+  }
+}
+
+/* ════════════════════════════════════════════════ EXCEL EXPORT / IMPORT ════════════════════════════════════════════════ */
+const XLSX_SOURCES = [
+  'https://cdn.jsdelivr.net/npm/[email protected]/dist/xlsx.full.min.js',
+  'https://unpkg.com/[email protected]/dist/xlsx.full.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+];
+let xlsxLoadPromise = null;
+function loadXLSXLib() {
+  if(typeof XLSX !== 'undefined') return Promise.resolve(true);
+  if(xlsxLoadPromise) return xlsxLoadPromise;
+  xlsxLoadPromise = new Promise((resolve, reject) => {
+    let i = 0;
+    const tryNext = () => {
+      if(typeof XLSX !== 'undefined') { resolve(true); return; }
+      if(i >= XLSX_SOURCES.length) { reject(new Error('Échec de toutes les sources (' + XLSX_SOURCES.length + ')')); return; }
+      const src = XLSX_SOURCES[i++];
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = () => { if(typeof XLSX !== 'undefined') resolve(true); else tryNext(); };
+      s.onerror = () => tryNext();
+      document.head.appendChild(s);
+    };
+    tryNext();
+  });
+  return xlsxLoadPromise;
+}
+const EXCEL_COLUMNS = ['Num','Location','Bloc','Agent','Téléphone','Repo','GPS','Remplaçant(e)','Téléphone remplaçant(e)','Groupe','Remplacant Principal'];
+
+async function exportToExcel() {
+  try {
+    try {
+      await loadXLSXLib();
+    } catch(loadErr) {
+      showModal('❌ Erreur réseau', 'Impossible de charger la bibliothèque Excel depuis 3 sources différentes. Cela indique que votre réseau/navigateur bloque l’accès à ces sites (jsdelivr, unpkg, cdnjs). Essayez : 1) un autre réseau WiFi, 2) désactiver tout VPN ou bloqueur de publicités, 3) essayer le navigateur Chrome.');
+      return;
+    }
+    if(!BLOCS || BLOCS.length === 0) {
+      showModal('⚠️', 'Aucune donnée à exporter pour le moment. Assurez-vous que les agents sont chargés depuis la page d’accueil d’abord.');
+      return;
+    }
+    const rows = BLOCS.map(b => ({
+      'Num': b.num,
+      'Location': b.adr || '',
+      'Bloc': b.bloc_label || '',
+      'Agent': b.nom || '',
+      'Téléphone': b.tel || '',
+      'Repo': b.repos || '',
+      'GPS': b.gps || '',
+      'Remplaçant(e)': b.remplacant || '',
+      'Téléphone remplaçant(e)': b.remplacant_tel || '',
+      'Groupe': b.group_num || '',
+      'Remplacant Principal': b.is_substitute ? 'Oui' : ''
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows, { header: EXCEL_COLUMNS });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Blocs');
+    const dateStr = new Date().toISOString().split('T')[0];
+    const fileName = `axial-facilities-${dateStr}.xlsx`;
+
+    // Méthode principale : XLSX.writeFile
+    let downloaded = false;
+    try {
+      XLSX.writeFile(wb, fileName);
+      downloaded = true;
+    } catch(e1) { console.error('writeFile failed', e1); }
+
+    // Méthode alternative (de secours) si la première échoue : Blob + lien de téléchargement manuel
+    if(!downloaded) {
+      const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+      const blob = new Blob([wbout], { type:'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fileName;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+    }
+  } catch(err) {
+    console.error(err);
+    showModal('❌ Erreur d’exportation', err.message || 'Une erreur inattendue est survenue lors de l’exportation du fichier.');
+  }
+}
+
+let excelPendingRows = []; // { action:'new'|'update'|'same', num, newData, oldData, diffs:[], selected:bool }
+
+async function handleExcelImport(evt) {
+  const file = evt.target.files[0];
+  const errEl = document.getElementById('excelImportError');
+  errEl.innerHTML = '';
+  if(!file) return;
+  try {
+    await loadXLSXLib();
+  } catch(loadErr) {
+    errEl.innerHTML = '<div class="alert alert-red">❌ Impossible de charger la bibliothèque Excel depuis internet. Vérifiez votre réseau ou essayez un autre navigateur.</div>';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type:'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { defval:'' });
+      buildExcelPreview(json);
+    } catch(err) {
+      errEl.innerHTML = '<div class="alert alert-red">❌ Échec de la lecture du fichier : ' + err.message + '</div>';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function normVal(v) { return (v===undefined || v===null) ? '' : String(v).trim(); }
+
+function buildExcelPreview(rows) {
+  const usedNums = new Set(BLOCS.map(b=>b.num));
+  let nextNum = Math.max(0, ...BLOCS.map(b=>parseInt(b.num)).filter(n=>!isNaN(n))) + 1;
+  excelPendingRows = rows.map(r => {
+    let num = normVal(r['Num']);
+    const newData = {
+      adr: normVal(r['Location']),
+      bloc_label: normVal(r['Bloc']),
+      nom: normVal(r['Agent']),
+      tel: normVal(r['Téléphone']),
+      repos: normVal(r['Repo']),
+      gps: normVal(r['GPS']),
+      remplacant: normVal(r['Remplaçant(e)']),
+      remplacant_tel: normVal(r['Téléphone remplaçant(e)']),
+      group_num: normVal(r['Groupe']),
+      is_substitute: ['Oui','oui','yes','true','1'].includes(normVal(r['Remplacant Principal']).toLowerCase())
+    };
+    let existing = num ? BLOCS.find(b => b.num === num) : null;
+    if(!existing && !num) { num = String(nextNum++); }
+    if(!existing) {
+      return { action:'new', num, newData, oldData:null, diffs:[], selected:true };
+    }
+    const fieldsLabels = { adr:'Adresse', bloc_label:'Nom du bloc', nom:'Nom', tel:'Téléphone', repos:'Repos', gps:'GPS', remplacant:'Remplaçant', remplacant_tel:'Téléphone remplaçant', group_num:'Groupe', is_substitute:'Remplaçant principal' };
+    const diffs = [];
+    Object.keys(fieldsLabels).forEach(f => {
+      const oldV = existing[f]===true?'Oui':existing[f]===false?'':(existing[f]||'');
+      const newV = newData[f]===true?'Oui':newData[f]===false?'':(newData[f]||'');
+      if(String(oldV) !== String(newV)) diffs.push({ field:fieldsLabels[f], old:oldV, val:newV });
+    });
+    return { action: diffs.length ? 'update' : 'same', num, newData, oldData:existing, diffs, selected: diffs.length>0 };
+  });
+  renderExcelPreview();
+}
+
+function renderExcelPreview() {
+  document.getElementById('excelPreviewSection').style.display = 'block';
+  const newCount = excelPendingRows.filter(r=>r.action==='new').length;
+  const updCount = excelPendingRows.filter(r=>r.action==='update').length;
+  const sameCount = excelPendingRows.filter(r=>r.action==='same').length;
+  document.getElementById('excelPreviewSummary').textContent = `🆕 Nouveau: ${newCount} · ✏️ Modifier: ${updCount} · ⚪ Sans changement: ${sameCount}`;
+  const list = document.getElementById('excelPreviewList');
+  list.innerHTML = excelPendingRows.map((r,i) => {
+    const tagLabel = r.action==='new'?'🆕 Nouveau':r.action==='update'?'✏️ Modifier':'⚪ Sans changement';
+    return `<div class="imp-row ${r.action}">
+      <div class="imp-check">
+        <div><b>${r.newData.nom||'(sans nom)'}</b> <span style="color:var(--sub);font-size:12px">· Bloc ${r.num}</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="imp-tag ${r.action}">${tagLabel}</span>
+          ${r.action!=='same' ? `<input type="checkbox" class="excel-check" data-idx="${i}" ${r.selected?'checked':''} onchange="excelPendingRows[${i}].selected=this.checked">` : ''}
+        </div>
+      </div>
+      ${r.diffs.length ? `<div class="imp-diff">${r.diffs.map(d=>`${d.field}: <span class="old">${d.old||'—'}</span> → <span class="new-val">${d.val||'—'}</span>`).join('<br>')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function excelSelectAll(state) {
+  excelPendingRows.forEach(r => { if(r.action!=='same') r.selected = state; });
+  renderExcelPreview();
+}
+
+async function confirmExcelImport() {
+  const toApply = excelPendingRows.filter(r => r.selected && r.action!=='same');
+  if(toApply.length === 0) { showModal('⚠️','Aucune modification sélectionnée à appliquer'); return; }
+  const dbRows = toApply.map(r => toDbBloc({ num:r.num, ...r.newData }));
+  const { error } = await sb.from('blocs').upsert(dbRows, { onConflict:'num' });
+  if(error) { showModal('❌ Erreur', 'Échec de l’application des modifications : ' + error.message); return; }
+  await loadBlocsFromDB();
+  populateSelects();
+  renderReplacementRoster();
+  updateDashboard();
+  cancelExcelImport();
+  showModal('✅ Mise à jour effectuée', `${toApply.length} modification(s) appliquée(s) avec succès depuis le fichier Excel`);
+}
+
+function cancelExcelImport() {
+  excelPendingRows = [];
+  document.getElementById('excelPreviewSection').style.display = 'none';
+  const fileInput = document.getElementById('excelFileInput');
+  if(fileInput) fileInput.value = '';
+  const errEl = document.getElementById('excelImportError');
+  if(errEl) errEl.innerHTML = '';
+}
+
+const SEED_BLOCS = [{"num": "1", "adr": "Parc sportif Al Qods, Caplam, Sidi Bernoussi 1", "bloc_label": "Bernoussi Caplame 1", "gps": "33°36'38.8\"N 7°29'26.8\"W", "nom": "Aziza", "tel": "+212 713-030044", "repos": "Dimanche", "remplacant": "Hajiba", "remplacant_tel": "+212 631-837729", "photo_url": ""}, {"num": "2", "adr": "Parc sportif Al Qods, Caplam, Sidi Bernoussi 2", "bloc_label": "Bernoussi Caplame 2", "gps": "33°36'42.4\"N 7°29'20.3\"W", "nom": "Atika", "tel": "+212 694-846584", "repos": "Mardi", "remplacant": "Hajiba", "remplacant_tel": "+212 631-837729", "photo_url": ""}, {"num": "3", "adr": "Place des Nations Unies, Boulevard Moulay Hassan 1er – Casablanca-Anfa", "bloc_label": "", "gps": "33°35'41.9\"N 7°37'11.0\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "4", "adr": "Espaces verts, angle Boulevard des Almohandes et Boulevard Sour Jdid", "bloc_label": "", "gps": "33°36'17.5\"N 7°37'11.7\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "5", "adr": "Angle Rue Louizia et Bd Driss Slaoui, Parc Dawliz, Bd de la Corniche – Casablanca-Anfa", "bloc_label": "", "gps": "33°36'11.3\"N 7°39'32.8\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "6", "adr": "Place de la Ligue Arabe, angle Bd Moulay Youssef et Bd Hassan II", "bloc_label": "", "gps": "33°35'25.1\"N 7°37'12.4\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "7", "adr": "La Casablancaise, angle Bd Moulay Youssef et Bd Hassan II", "bloc_label": "", "gps": "33°35'17.3\"N 7°37'17.1\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "8", "adr": "Bd Abdellah Senhaji – Hay El Amal – El Fida", "bloc_label": "", "gps": "33°34'10.5\"N 7°35'31.5\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "9", "adr": "Arrêt de bus, angle Bd Félix Houphouët-Boigny et Rue Oraibi Jilali – Casablanca-Anfa", "bloc_label": "", "gps": "33°35'53.5\"N 7°36'54.1\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "10", "adr": "Bd Abdellah Senhaji – Jardin Idrissi – El Fida", "bloc_label": "", "gps": "33°33'56.6\"N 7°35'18.6\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "11", "adr": "Place Sidi Mohamed – Casa-Voyageurs", "bloc_label": "", "gps": "33°35'25.9\"N 7°35'30.1\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "12", "adr": "Bd Al Ghadaoui, à côté de la station des taxis – Sidi Bernoussi", "bloc_label": "Bernoussi 86", "gps": "33°36'49.0\"N 7°30'15.0\"W", "nom": "Khadija", "tel": "+212 721-723928", "repos": "Samedi", "remplacant": "Hajiba", "remplacant_tel": "+212 631-837729", "photo_url": ""}, {"num": "13", "adr": "Bd El Moutana Ben Harita, à côté de Kissariat – Sidi Bernoussi", "bloc_label": "Bernoussi Soq Namodaji", "gps": "33°36'28.5\"N 7°30'39.2\"W", "nom": "Rachida", "tel": "+212 720-996048", "repos": "Lundi", "remplacant": "Hajiba", "remplacant_tel": "+212 631-837729", "photo_url": ""}, {"num": "14", "adr": "Angle Rue Abdellah El Médiouna, Av Houmane El Fetouaki et Rue de Strasbourg – Derb Omar – Casablanca-Anfa", "bloc_label": "", "gps": "33°35'35.1\"N 7°36'43.4\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "15", "adr": "Jardin Arij El Andalouse, angle Bd Modibo Keita et Bd 2 Mars – El Fida", "bloc_label": "", "gps": "33°33'43.3\"N 7°36'31.4\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "16", "adr": "Bd El Fida – Derb Fokara – El Fida", "bloc_label": "", "gps": "33°34'02.8\"N 7°36'19.7\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "17", "adr": "Jardin public Ain Sebaa – Route de Chabbou", "bloc_label": "Mahkama \"Trubinal\"", "gps": "33°36'03.7\"N 7°31'50.4\"W", "nom": "Khadija", "tel": "+212 684-495904", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "18", "adr": "Place Al Yassir – Bd Emile Zola – Roches Noires – Ain Sebaa", "bloc_label": "", "gps": "33°35'36.0\"N 7°35'49.8\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "19", "adr": "Av Ibn Zohr Abdessalam, en face de Kissariat Hay Mohammadi – Ain Sebaa", "bloc_label": "Kissariat Hay Mohammadi", "gps": "33°35'07.8\"N 7°33'47.3\"W", "nom": "Naima", "tel": "+212 721-204367", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "20", "adr": "Place Bechhar El Khayr – Bd Echouhada – Hay Mohammadi – Ain Sebaa", "bloc_label": "Parc Bechhar El Khayr (Bloc 1)", "gps": "33°35'36.0\"N 7°34'10.6\"W", "nom": "Amina", "tel": "+212 674-655604", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "21", "adr": "Place Bechhar El Khayr – Bd Echouhada – Hay Mohammadi – Ain Sebaa", "bloc_label": "Parc Bechhar El Khayr (Bloc 2)", "gps": "33°35'36.0\"N 7°34'10.6\"W", "nom": "Zahira", "tel": "+212 621-664337", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "22", "adr": "Boulevard Rahala Farouki Bin Lmdoune – El Fida", "bloc_label": "Bin Lmdoune", "gps": "", "nom": "Zahra", "tel": "+212 698-337695", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "23", "adr": "Parc préfectoral Ain Sebaa – Route de Chabbou", "bloc_label": "Parc préfectoral Ain Sebaa Marjan", "gps": "33°35'51.3\"N 7°31'49.7\"W", "nom": "Bouchra", "tel": "+212 626-660619", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "24", "adr": "Rond-point El Ghazali, angle Bd Modibo Keita et Bd Abi Chouab Doukali – El Fida", "bloc_label": "", "gps": "33°33'44.8\"N 7°36'22.2\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "25", "adr": "Avenue Mohamed Bouziane – Moulay Rachid", "bloc_label": "Hay Moulay Rachid", "gps": "33°34'18.3\"N 7°32'26.4\"W", "nom": "Naima", "tel": "+212 724-432266", "repos": "", "remplacant": "Hajiba", "remplacant_tel": "+212 631-837729", "photo_url": ""}, {"num": "26", "adr": "Angle Bd Mohammed VI et Rue Azzouhour – Mers Sultan – El Fida", "bloc_label": "", "gps": "33°34'36.6\"N 7°35'56.0\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "27", "adr": "Jardin Mohammed VI et Bd Panoramique – Ain Chock", "bloc_label": "Bahia", "gps": "33°33'27.5\"N 7°35'41.3\"W", "nom": "Sanae", "tel": "+212 691-198746", "repos": "", "remplacant": "Khalide", "remplacant_tel": "+212 631-381186", "photo_url": ""}, {"num": "28", "adr": "Espace vert Bd Amgala – Ain Chock", "bloc_label": "Amgala", "gps": "33°32'27.3\"N 7°34'48.7\"W", "nom": "Aziza", "tel": "+212 691-198746", "repos": "", "remplacant": "Khalide", "remplacant_tel": "+212 631-381186", "photo_url": ""}, {"num": "29", "adr": "Bd Mekdad Lahrizi, gare des taxis – Hay El Houda – Sbata", "bloc_label": "Mekdad Lahrizi", "gps": "33°32'10.1\"N 7°34'28.8\"W", "nom": "Issam", "tel": "+212 663-693517", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "30", "adr": "Jardin Sanday – Sbata", "bloc_label": "Parc Sanday", "gps": "33°32'31.1\"N 7°34'45.9\"W", "nom": "Mahassin", "tel": "+212 701-720671", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "31", "adr": "Gare des taxis – Bd Ahmed El Abdi – Sidi Bernoussi", "bloc_label": "Bernoussi Cinéma", "gps": "33°36'33.8\"N 7°30'25.6\"W", "nom": "Karima", "tel": "+212 772-443551", "repos": "", "remplacant": "Hajiba", "remplacant_tel": "+212 631-837729", "photo_url": ""}, {"num": "32", "adr": "Jardin Jenane Sebil – Rue 29 Omar Ibn Khatar – El Fida", "bloc_label": "", "gps": "33°34'04.2\"N 7°34'44.3\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "33", "adr": "Rue Al Gharb, près du centre de santé JMIAA", "bloc_label": "", "gps": "33°57'30.44\"N 7°60'53.93\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "34", "adr": "Angle Rue Bni M’Guild et Rue 46 – Quartier Bouchentouf", "bloc_label": "", "gps": "33°57'11.79\"N 7°60'46.30\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "35", "adr": "Rue 07, près du centre de santé La Pépinière", "bloc_label": "", "gps": "33°57'29.24\"N 7°58'78.10\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "36", "adr": "Angle Boulevard El Fida et Rue 10", "bloc_label": "", "gps": "33°56'63.66\"N 7°60.83'10\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "37", "adr": "Bd Mohamed Zefzaf – Sidi Moumen", "bloc_label": "", "gps": "33°34'25.4\"N 7°31'41.0\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "38", "adr": "Bd Abdellah Ibrahimi – Sidi Moumen", "bloc_label": "", "gps": "33°34'28.0\"N 7°31'03.2\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "39", "adr": "Espace vert Bd Attadamoun – Al Azhar", "bloc_label": "", "gps": "33°36'09.7\"N 7°29'20.7\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "40", "adr": "Entrée du cimetière de Sidi Moumen, en face de la parapharmacie – Bd Abdellah Ibrahim", "bloc_label": "", "gps": "33°34'48.0\"N 7°31'17.3\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "41", "adr": "Jardin Bournazil – Moulay Rachid", "bloc_label": "", "gps": "33°34'21.6\"N 7°33'30.5\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "42", "adr": "Jardin Chtaiba – Bd 10 Mars – Sidi Othmane", "bloc_label": "", "gps": "33°33'59.0\"N 7°34'19.4\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "43", "adr": "Intersection Bd Nile et Rue N°4 – Jardin Zelaqa – Sidi Othmane", "bloc_label": "", "gps": "33°34'13.0\"N 7°34'01.5\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "44", "adr": "Parc La Forêt Verte – Av Mohamed Joudar Ben Abdellah – Moulay Rachid", "bloc_label": "", "gps": "33°34'06.0\"N 7°31'57.6\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "45", "adr": "Gare des taxis – Bd Mohammed VI / Bd Taha", "bloc_label": "", "gps": "33°32'05.7\"N 7°34'29.1\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "46", "adr": "Jardin Les Crêtes – Bd de Fès", "bloc_label": "", "gps": "33°32'59.6\"N 7°36'10.9\"W", "nom": "", "tel": "", "repos": "", "remplacant": "Khalide", "remplacant_tel": "+212 631-381186", "photo_url": ""}, {"num": "47", "adr": "Bd El Haouz, à côté de la mosquée d’Ain Chock", "bloc_label": "", "gps": "33°33'10.5\"N 7°36'01.5\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "48", "adr": "Bd El Khalil – Ain Chock", "bloc_label": "", "gps": "33°54'79.1\"N 7°59'86.4\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "49", "adr": "Bd Abou Baker El Kadiri – Sidi Maarouf 3", "bloc_label": "", "gps": "33°30'27.5\"N 7°39'27.1\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "50", "adr": "Jardin Sanday – Bd Oued Eddahab – Sbata", "bloc_label": "", "gps": "33°32'20.0\"N 7°34'36.9\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "51", "adr": "Jardin Annasr – Salmiya 1, en face du 17e district urbain", "bloc_label": "", "gps": "33°53'95.19\"N 7°55'11.3\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "52", "adr": "Jardin Echabab – Quartier Hassania – Ben M’sik", "bloc_label": "", "gps": "33°33'46.2\"N 7°34'52.6\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "53", "adr": "Route nationale N1 – Lissasfa", "bloc_label": "", "gps": "33°32'01.6\"N 7°40'14.5\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "54", "adr": "Gare des taxis – Route nationale N1 – Lissasfa", "bloc_label": "", "gps": "33°31'54.4\"N 7°40'22.4\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "55", "adr": "Hay En Nassim, près de la gare de train", "bloc_label": "", "gps": "33°31'54.4\"N 7°40'22.4\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "56", "adr": "Bd Mlouia – Oulfa", "bloc_label": "", "gps": "33°33'14.1\"N 7°40'50.3\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "57", "adr": "À côté de l’école primaire Badr et derrière le collège Al Idrissi – Bd Afghanistan", "bloc_label": "", "gps": "33°34'10.2\"N 7°40'49.0\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "58", "adr": "Angle Rue 45 Derb Nejma et Rue Sidi El Khadir – Parc Hay Hassani – Bd Afghanistan", "bloc_label": "", "gps": "33°34'17.6\"N 7°40'41.7\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "59", "adr": "Angle Bd Oued Oum Rbia et Bd Oued Sebou", "bloc_label": "", "gps": "33°33'16.7\"N 7°41'10.4\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "60", "adr": "Jardin préfectoral Sidi Othmane (2 blocs)", "bloc_label": "2 blocs", "gps": "33°33'13.3\"N 7°34'09.2\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "61", "adr": "Quartier des Hôpitaux (Bloc 1)", "bloc_label": "", "gps": "33°34'37.1\"N 7°37'29.2\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "62", "adr": "Quartier des Hôpitaux (Bloc 2)", "bloc_label": "", "gps": "33°34'43.1\"N 7°37'20.8\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "63", "adr": "Boulevard Roudani – Station des taxis", "bloc_label": "", "gps": "33°34'43.6\"N 7°38'11.9\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "64", "adr": "Boulevard Rahal Meskini", "bloc_label": "", "gps": "33°35'17.9\"N 7°36'43.7\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "65", "adr": "Parking Casa Baia, à côté de McDonald’s – Maarif", "bloc_label": "", "gps": "33°35'06.7\"N 7°38'01.6\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "66", "adr": "Jardin Alesco (Bloc 1)", "bloc_label": "Jardin Alesco – Bloc 1", "gps": "33°33'08.0\"N 7°33'57.9\"W", "nom": "Sediq", "tel": "+212 613-836437", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "67", "adr": "Jardin Alesco (Bloc 2)", "bloc_label": "Jardin Alesco – Bloc 2", "gps": "33°33'08.0\"N 7°33'57.9\"W", "nom": "Samira", "tel": "+212 603-826857", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "68", "adr": "Jardin Alesco (Bloc 3)", "bloc_label": "Jardin Alesco – Bloc 3", "gps": "33°33'08.0\"N 7°33'57.9\"W", "nom": "Sanae", "tel": "+212 775-302501", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "69", "adr": "Boulevard Biranzarane – Tag Bus", "bloc_label": "", "gps": "33°34'43.5\"N 7°38'06.8\"W", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}, {"num": "70", "adr": "Hermitage", "bloc_label": "", "gps": "", "nom": "", "tel": "", "repos": "", "remplacant": "", "remplacant_tel": "", "photo_url": ""}];
+</script></body></html>
